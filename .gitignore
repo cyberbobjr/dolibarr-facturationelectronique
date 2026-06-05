@@ -7,6 +7,7 @@
 /doc/code/doxygen
 # Composer managed dependencies
 /vendor
+/composer.lock
 /dev/bin
 # PHPdocumentor generated files
 /build/phpdoc
@@ -37,3 +38,7 @@ Thumbs.db
 
 # Local test files
 test_lookup.php
+
+# PHPUnit cache
+.phpunit.result.cache
+.phpunit.cache/

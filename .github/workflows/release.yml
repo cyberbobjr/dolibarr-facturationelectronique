@@ -1,0 +1,68 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Increment Version
+        id: increment
+        run: |
+          php build/increment_version.php
+
+      - name: Commit and Push Version Change
+        run: |
+          git add core/modules/modFacturationElectronique.class.php
+          # Check if there are changes to commit
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): bump version to ${{ steps.increment.outputs.new_version }} [skip ci]"
+            git push origin main
+          else
+            echo "No version changes to commit."
+          fi
+
+      - name: Create Git Tag
+        run: |
+          git tag -a "v${{ steps.increment.outputs.new_version }}" -m "Release v${{ steps.increment.outputs.new_version }}"
+          git push origin "v${{ steps.increment.outputs.new_version }}"
+
+      - name: Build Module ZIP
+        run: |
+          php build/pack.php
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.increment.outputs.new_version }}"
+          name: "Release v${{ steps.increment.outputs.new_version }}"
+          body: "Automated release for version v${{ steps.increment.outputs.new_version }}"
+          draft: false
+          prerelease: true
+          files: build/module_facturationelectronique-${{ steps.increment.outputs.new_version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

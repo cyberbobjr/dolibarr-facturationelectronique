@@ -57,12 +57,12 @@ Ce module permet de mettre en conformité Dolibarr avec la future réglementatio
 ## Configuration
 
 1. Cliquez sur l'icône d'engrenage de configuration du module.
-2. Sélectionnez le fournisseur actif (ex. **SuperPDP**).
+2. Sélectionnez et activez le fournisseur actif (ex. **SuperPDP**).
 3. Renseignez vos identifiants d'API :
-   - URL de la passerelle (sandbox vs production).
-   - Clés d'API / Jetons d'accès.
-4. Ajustez si nécessaire les paramètres spécifiques (tels que le préfixe de routage automatique pour le bac à sable PEPPOL).
-5. Enregistrez et validez la connexion via les boutons de test intégrés.
+   - Pour **SuperPDP** : sélectionnez le mode (**Bac à sable** ou **Production**) et saisissez le *Client ID* et le *Client Secret* correspondants.
+   - Pour **FactPulse** : saisissez l'adresse *Email* et le *Mot de passe* associés.
+4. Cliquez sur **Enregistrer** pour sauvegarder les modifications.
+5. Validez la connexion avec le bouton de **Test de connexion** intégré.
 
 ---
 

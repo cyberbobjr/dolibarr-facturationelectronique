@@ -55,7 +55,15 @@ $excludes = array(
 	'test_lookup.php',
 	'test_payments_trigger.php',
 	'Thumbs.db',
-	'.DS_Store'
+	'.DS_Store',
+	'vendor',
+	'composer.json',
+	'composer.lock',
+	'.github',
+	'tests',
+	'phpunit.xml',
+	'.phpunit.result.cache',
+	'.phpunit.cache'
 );
 
 echo "Copying files to staging directory...\n";
