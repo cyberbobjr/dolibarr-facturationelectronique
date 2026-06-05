@@ -20,7 +20,7 @@ jobs:
           coverage: none
 
       - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --dev
+        run: composer update --no-interaction --prefer-dist --no-progress --dev
 
       - name: Run PHPUnit Tests
         run: ./vendor/bin/phpunit --configuration phpunit.xml
