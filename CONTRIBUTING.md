@@ -21,21 +21,14 @@ Ce module est versionné indépendamment du cœur de Dolibarr. Assurez-vous de t
 
 ### 3. Versioning et Release automatiques
 
-Pour livrer une nouvelle version du module :
-1. Sur votre branche de fonctionnalité, préparez la release en exécutant le script de génération de changelog et de version :
-   ```bash
-   php build/generate_changelog.php
-   ```
-   Ce script va automatiquement :
-   - Analyser les nouveaux commits et mettre à jour le fichier `CHANGELOG.md` en français.
-   - Calculer la nouvelle version sémantique (SemVer) et mettre à jour le descripteur du module.
-2. Commitez et poussez ces changements (`CHANGELOG.md` et descripteur) sur votre branche de Pull Request.
-3. Une fois la Pull Request approuvée et fusionnée sur `main` :
-   - Le pipeline CI/CD de release détecte le changement de version sur `main`.
-   - Il extrait automatiquement les notes de cette version depuis le `CHANGELOG.md`.
-   - Il crée le tag Git correspondant (ex: `v1.0.0-alpha.1`).
-   - Il compile le package de distribution au format ZIP.
-   - Il génère automatiquement la release GitHub avec le ZIP attaché et les notes de version, sans jamais avoir besoin de pousser ou de commiter automatiquement sur la branche protégée `main`.
+Le processus de livraison (release) est entièrement automatisé par GitHub Actions :
+1. Développez vos fonctionnalités et corrections sur votre branche et ouvrez une Pull Request ciblant `main`.
+2. Une fois la Pull Request approuvée et fusionnée sur `main` :
+   - Le pipeline CI/CD de release s'exécute sur `main`.
+   - Il calcule automatiquement la nouvelle version sémantique (SemVer) en analysant l'historique des commits depuis le dernier tag (Breaking change = Major, Feat = Minor, Fix/Chore = Patch/Alpha).
+   - Il met à jour le fichier `CHANGELOG.md` en français et le numéro de version dans le descripteur du module.
+   - Il commite et pousse ces changements directement sur la branche `main` (avec la mention `[skip ci]` pour éviter les boucles).
+   - Il crée le tag Git correspondant, génère l'archive de distribution ZIP propre (sans les fichiers de test/dev) et publie la release sur GitHub avec les notes de version associées.
 
 ---
 

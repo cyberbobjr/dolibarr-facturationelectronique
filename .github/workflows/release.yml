@@ -24,49 +24,44 @@ jobs:
           php-version: '8.1'
           coverage: none
 
-      - name: Check if Tag Exists
-        id: check_tag
+      - name: Configure Git User
         run: |
-          # Read version from descriptor
-          VERSION=$(php -r "
-            define('DOL_DOCUMENT_ROOT', 'htdocs');
-            class stdClass {}
-            class DolibarrModules {}
-            include 'core/modules/modFacturationElectronique.class.php';
-            \$m = new modFacturationElectronique(null);
-            echo \$m->version;
-          ")
-          echo "Version found: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
-          # Check if tag already exists in repository
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Tag v$VERSION already exists. Skipping release."
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate Changelog and Bump Version
+        id: increment
+        run: |
+          php build/generate_changelog.php
+
+      - name: Commit and Push Changes
+        run: |
+          git add core/modules/modFacturationElectronique.class.php CHANGELOG.md
+          # Check if there are changes to commit
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): bump version and update CHANGELOG to ${{ steps.increment.outputs.new_version }} [skip ci]"
+            git push origin main
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Tag v$VERSION does not exist yet. Proceeding with release."
+            echo "No changes to commit."
           fi
 
-      - name: Extract Release Notes
-        if: steps.check_tag.outputs.exists != 'true'
+      - name: Create Git Tag
         run: |
-          php build/extract_release_notes.php
+          git tag -a "v${{ steps.increment.outputs.new_version }}" -m "Release v${{ steps.increment.outputs.new_version }}"
+          git push origin "v${{ steps.increment.outputs.new_version }}"
 
       - name: Build Module ZIP
-        if: steps.check_tag.outputs.exists != 'true'
         run: |
           php build/pack.php
 
       - name: Create GitHub Release
-        if: steps.check_tag.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.check_tag.outputs.version }}"
-          name: "Release v${{ steps.check_tag.outputs.version }}"
+          tag_name: "v${{ steps.increment.outputs.new_version }}"
+          name: "Release v${{ steps.increment.outputs.new_version }}"
           body_path: build/release_notes.md
           draft: false
           prerelease: true
-          files: build/module_facturationelectronique-${{ steps.check_tag.outputs.version }}.zip
+          files: build/module_facturationelectronique-${{ steps.increment.outputs.new_version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
