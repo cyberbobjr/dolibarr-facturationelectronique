@@ -1,67 +1,67 @@
-# Contributing to Facturation Électronique B2B Module
+# Contribution au module Facturation Électronique B2B
 
-Thank you for your interest in contributing to this Dolibarr module! To ensure a smooth development process and maintain high code quality, please follow these guidelines.
+Merci de l'intérêt que vous portez à la contribution de ce module Dolibarr ! Afin de garantir un processus de développement fluide et de maintenir un niveau élevé de qualité de code, merci de suivre ces directives.
 
 ---
 
-## Development Workflow
+## Flux de travail (Workflow)
 
-### 1. Dedicated Repository
-This module is versioned independently of Dolibarr core. Ensure you are working directly inside the custom module repository:
+### 1. Dépôt dédié
+Ce module est versionné indépendamment du cœur de Dolibarr. Assurez-vous de travailler directement dans le répertoire du module personnalisé :
 `custom/facturationelectronique/`
 
-### 2. Branching & Pull Requests
-- **Never push directly to the `main` branch.** It is protected.
-- Create a feature branch for your changes:
+### 2. Branches et Pull Requests
+- **Ne poussez jamais directement sur la branche `main`.** Celle-ci est protégée.
+- Créez une branche de fonctionnalité (feature branch) pour vos modifications :
   ```bash
-  git checkout -b feature/your-feature-name
+  git checkout -b feature/nom-de-votre-fonctionnalite
   ```
-- Push your branch to GitHub and open a **Pull Request (PR)** targeting the `main` branch.
-- Your PR must be approved by at least one maintainer and pass the automated CI/CD checks before it can be merged.
+- Poussez votre branche sur GitHub et ouvrez une **Pull Request (PR)** ciblant la branche `main`.
+- Votre PR doit être approuvée par au moins un mainteneur et passer les vérifications CI/CD automatisées avant de pouvoir être fusionnée.
 
-### 3. Automatic Versioning & Release
-When a PR is merged into `main`:
-- The CI/CD pipeline automatically increments the alpha build version.
-- It updates the version in `core/modules/modFacturationElectronique.class.php`.
-- A Git tag is created and pushed.
-- A new GitHub Release is compiled with the auto-generated ZIP package attached.
-
----
-
-## Coding Standards
-
-This module adheres to native Dolibarr coding standards:
-- **Indentation**: Use **Tab** indentation for PHP, JS, and CSS files.
-- **PHP Syntax**: Use clean object-oriented PHP compatible with PHP 8.1+. Do not use closing `?>` tags at the end of PHP-only files.
-- **Aesthetic Excellence**: All UI modifications must match Dolibarr's native styling classes (e.g., `liste centpercent`, `oddeven`, `butAction`) to guarantee responsiveness and visual integration across all themes.
+### 3. Versioning et Release automatiques
+Lorsqu'une PR est fusionnée dans `main` :
+- Le pipeline CI/CD incrémente automatiquement la version de build alpha.
+- Il met à jour la version dans le fichier `core/modules/modFacturationElectronique.class.php`.
+- Un tag Git est créé et poussé.
+- Une nouvelle release GitHub est générée avec le package ZIP auto-généré attaché.
 
 ---
 
-## Running Unit Tests Locally
+## Normes de codage
 
-We use **PHPUnit** to run unit tests. To avoid the overhead of loading a full Dolibarr instance and database, we use a minimal mock bootstrap.
+Ce module respecte les normes de codage natives de Dolibarr :
+- **Indentation** : Utilisez des **Tabulations** pour l'indentation des fichiers PHP, JS et CSS.
+- **Syntaxe PHP** : Utilisez un code orienté objet propre et compatible avec PHP 8.1+. Ne pas mettre de balise de fermeture `?>` à la fin des fichiers contenant uniquement du PHP.
+- **Excellence esthétique** : Toutes les modifications d'interface utilisateur (UI) doivent utiliser les classes de style natives de Dolibarr (ex. `liste centpercent`, `oddeven`, `butAction`) afin de garantir la responsivité et l'intégration graphique avec tous les thèmes.
 
-### Prerequisites
+---
 
-Make sure you have PHP and Composer installed on your system.
+## Exécution locale des tests unitaires
 
-### Install dependencies
+Nous utilisons **PHPUnit** pour exécuter des tests unitaires. Afin d'éviter la lourdeur du chargement d'une instance complète de Dolibarr et de sa base de données, nous utilisons un bootstrap minimal de simulation (mock).
 
-Run Composer in the module root to install testing tools:
+### Prérequis
+
+Assurez-vous d'avoir PHP et Composer installés sur votre système.
+
+### Installation des dépendances
+
+Exécutez Composer à la racine du module pour installer les outils de test :
 ```bash
 composer install
 ```
 
-### Run tests
+### Exécuter les tests
 
-To run the test suite locally, execute:
+Pour lancer la suite de tests localement, exécutez :
 ```bash
 ./vendor/bin/phpunit --configuration phpunit.xml
 ```
 
-### Adding Tests
+### Ajouter des tests
 
-All unit tests should be placed in the `tests/` directory and suffixed with `Test.php`.
-If you need to mock Dolibarr database objects or global settings:
-- Use the mock functions defined in `tests/bootstrap.php`.
-- Extend or register mock properties inside `tests/bootstrap.php` if new Dolibarr helper functions are introduced.
+Tous les tests unitaires doivent être placés dans le répertoire `tests/` et avoir le suffixe `Test.php`.
+Si vous devez simuler des objets de base de données Dolibarr ou des paramètres globaux :
+- Utilisez les fonctions factices (mocks) définies dans `tests/bootstrap.php`.
+- Étendez ou enregistrez des propriétés simulées dans `tests/bootstrap.php` si de nouvelles fonctions d'aide de Dolibarr sont introduites.
