@@ -37,3 +37,7 @@ Thumbs.db
 
 # Local test files
 test_lookup.php
+
+# PHPUnit cache
+.phpunit.result.cache
+.phpunit.cache/
