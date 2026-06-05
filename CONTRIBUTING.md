@@ -21,14 +21,21 @@ Ce module est versionné indépendamment du cœur de Dolibarr. Assurez-vous de t
 
 ### 3. Versioning et Release automatiques
 
-Lorsqu'une PR est fusionnée dans `main` :
-- Le pipeline CI/CD incrémente automatiquement la version de build alpha.
-- Il met à jour la version dans le fichier `core/modules/modFacturationElectronique.class.php`.
-- Un tag Git est créé et poussé.
-- Une nouvelle release GitHub est générée avec le package ZIP auto-généré attaché.
-
-> [!IMPORTANT]
-> **Contournement de la protection de branche** : Pour permettre au workflow de release de commiter l'incrément de version sur la branche protégée `main`, vous devez créer un secret de dépôt (Repository Secret) nommé `RELEASE_TOKEN` dans les paramètres de votre dépôt GitHub. Ce secret doit contenir un **Personal Access Token (PAT)** d'administrateur avec les permissions de contourner la protection de branche (bypass branch protection rules) et l'accès en écriture au dépôt (`contents: write`).
+Pour livrer une nouvelle version du module :
+1. Sur votre branche de fonctionnalité, préparez la release en exécutant le script de génération de changelog et de version :
+   ```bash
+   php build/generate_changelog.php
+   ```
+   Ce script va automatiquement :
+   - Analyser les nouveaux commits et mettre à jour le fichier `CHANGELOG.md` en français.
+   - Calculer la nouvelle version sémantique (SemVer) et mettre à jour le descripteur du module.
+2. Commitez et poussez ces changements (`CHANGELOG.md` et descripteur) sur votre branche de Pull Request.
+3. Une fois la Pull Request approuvée et fusionnée sur `main` :
+   - Le pipeline CI/CD de release détecte le changement de version sur `main`.
+   - Il extrait automatiquement les notes de cette version depuis le `CHANGELOG.md`.
+   - Il crée le tag Git correspondant (ex: `v1.0.0-alpha.1`).
+   - Il compile le package de distribution au format ZIP.
+   - Il génère automatiquement la release GitHub avec le ZIP attaché et les notes de version, sans jamais avoir besoin de pousser ou de commiter automatiquement sur la branche protégée `main`.
 
 ---
 
