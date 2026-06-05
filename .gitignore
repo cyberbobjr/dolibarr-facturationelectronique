@@ -42,3 +42,7 @@ test_lookup.php
 # PHPUnit cache
 .phpunit.result.cache
 .phpunit.cache/
+
+# Temporary release notes
+/build/release_notes.md
+
