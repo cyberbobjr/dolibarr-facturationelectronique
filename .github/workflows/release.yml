@@ -30,20 +30,20 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Increment Version
+      - name: Generate Changelog and Bump Version
         id: increment
         run: |
-          php build/increment_version.php
+          php build/generate_changelog.php
 
-      - name: Commit and Push Version Change
+      - name: Commit and Push Changes
         run: |
-          git add core/modules/modFacturationElectronique.class.php
+          git add core/modules/modFacturationElectronique.class.php CHANGELOG.md
           # Check if there are changes to commit
           if ! git diff --cached --quiet; then
-            git commit -m "chore(release): bump version to ${{ steps.increment.outputs.new_version }} [skip ci]"
+            git commit -m "chore(release): bump version and update CHANGELOG to ${{ steps.increment.outputs.new_version }} [skip ci]"
             git push origin main
           else
-            echo "No version changes to commit."
+            echo "No changes to commit."
           fi
 
       - name: Create Git Tag
@@ -60,7 +60,7 @@ jobs:
         with:
           tag_name: "v${{ steps.increment.outputs.new_version }}"
           name: "Release v${{ steps.increment.outputs.new_version }}"
-          body: "Automated release for version v${{ steps.increment.outputs.new_version }}"
+          body_path: build/release_notes.md
           draft: false
           prerelease: true
           files: build/module_facturationelectronique-${{ steps.increment.outputs.new_version }}.zip
