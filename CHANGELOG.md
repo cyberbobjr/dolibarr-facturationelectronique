@@ -6,6 +6,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.1] - 2026-06-05
+
+### ✨ Nouvelles Fonctionnalités
+- feat(ci): enforce Conventional Commits in Pull Requests to block invalid commits (47bcf52) par benjaminmarchand
+
+### 🔧 Maintenance & Refactoring
+- Merge pull request #6 from cyberbobjr/feature/commit-msg-enforcer (83fb2bc) par Benjamin MARCHAND
+
 ## [1.1.0-alpha.1] - 2026-06-05
 
 ### ✨ Nouvelles Fonctionnalités
