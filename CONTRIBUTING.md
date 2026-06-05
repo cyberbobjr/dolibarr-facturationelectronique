@@ -32,6 +32,41 @@ Le processus de livraison (release) est entièrement automatisé par GitHub Acti
 
 ---
 
+## Normalisation des messages de commit
+
+Pour que le calcul automatique de la version SemVer et du CHANGELOG fonctionne correctement, ce projet exige la normalisation des messages de commit selon la convention **Conventional Commits**.
+
+> [!WARNING]
+> **Validation stricte** : Toutes les Pull Requests font l'objet d'une validation automatique des messages de commits. Si un seul commit ne respecte pas le format, le test CI échouera et la fusion (merge) sera bloquée.
+
+### Format requis
+```
+<type>(<scope>): <description>
+```
+Le type et la description sont obligatoires. Le scope est facultatif.
+
+### Types autorisés
+- `feat` : Une nouvelle fonctionnalité (déclenche une hausse de version **mineure**).
+- `fix` : Une correction de bug (déclenche une hausse de version **correctif/patch**).
+- `docs` : Modifications de la documentation.
+- `style` : Changements n'affectant pas le sens du code (espaces, formatage, etc.).
+- `refactor` : Modification du code qui ne corrige pas un bug et n'ajoute pas de fonctionnalité.
+- `perf` : Modification du code pour améliorer les performances.
+- `test` : Ajout ou correction de tests.
+- `chore` : Tâches de maintenance (ex: mise à jour des workflows de CI/CD).
+- `ci` : Modifications des fichiers et scripts de configuration de la CI.
+- `revert` : Annulation d'un commit précédent.
+
+### Indicateur de changement majeur (Breaking Change)
+Si votre modification introduit un changement majeur incompatible avec les versions précédentes, vous devez ajouter un point d'exclamation `!` après le type ou le scope (ex: `feat!: changer l'URL d'API par défaut` ou `feat(api)!: supprimer l'endpoint X`), ou ajouter `BREAKING CHANGE:` en description du commit. Cela déclenchera automatiquement une hausse de version **majeure** (SemVer).
+
+### Comment corriger vos commits en cas d'échec de la CI ?
+Si la CI échoue en signalant un message non valide, vous pouvez réécrire l'historique de votre branche locale avant de la repousser :
+- Pour le dernier commit : `git commit --amend`
+- Pour plusieurs commits : `git rebase -i origin/main` (remplacez `pick` par `reword` pour les commits à modifier) puis force-poussez votre branche : `git push --force-with-lease`
+
+---
+
 ## Normes de codage
 
 Ce module respecte les normes de codage natives de Dolibarr :

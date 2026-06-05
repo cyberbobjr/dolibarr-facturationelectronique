@@ -12,6 +12,46 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to get commit history for comparison
+
+      - name: Validate Commit Messages
+        run: |
+          # Fetch main branch to check new commits
+          git fetch origin main
+          
+          # Get commit messages between origin/main and HEAD
+          COMMITS=$(git log origin/main..HEAD --pretty=format:"%s")
+          echo "Checking commits in this PR:"
+          echo "$COMMITS"
+          echo "----------------------------------------"
+          
+          # Regex for Conventional Commits
+          # Matches type(scope): message or type: message with optional breaking change indicator !
+          REGEX="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?\!?: .+$"
+          
+          ERRORS=0
+          
+          # Read line by line using while loop
+          while IFS= read -r commit; do
+            if [ -z "$commit" ]; then
+              continue
+            fi
+            if [[ ! "$commit" =~ $REGEX ]]; then
+              echo "❌ Invalid commit message: '$commit'"
+              echo "   Must match Conventional Commits format (e.g. 'feat(api): add new route' or 'fix: resolve bug')"
+              ERRORS=1
+            else
+              echo "✅ Valid commit message: '$commit'"
+            fi
+          done <<< "$COMMITS"
+          
+          if [ $ERRORS -ne 0 ]; then
+            echo "----------------------------------------"
+            echo "Error: One or more commit messages do not follow Conventional Commits formatting rules."
+            echo "Please fix your commit messages (e.g. by rewriting git history using git commit --amend or git rebase -i)."
+            exit 1
+          fi
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
