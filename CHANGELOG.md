@@ -5,3 +5,33 @@ Toutes les modifications notables apportées à ce projet seront consignées dan
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
+
+## [1.1.0-alpha.1] - 2026-06-05
+
+### ✨ Nouvelles Fonctionnalités
+- feat(ci): implement fully automated changelog generation and version bump on merge (58102e4) par benjaminmarchand
+- feat(ci): redesign release workflow to publish without committing to main (90e1f73) par benjaminmarchand
+- feat(ci): automate changelog generation and SemVer release notes (c44dfb2) par benjaminmarchand
+- feat(ci): add CI/CD workflows, unit testing, and contributing guidelines (6534da2) par benjaminmarchand
+
+### 🐛 Corrections de Bugs
+- fix(ci): use composer update and ignore composer.lock to support multiple PHP versions (825f886) par benjaminmarchand
+
+### 📝 Documentation
+- docs: correct configuration instructions in README.md (8a7533a) par benjaminmarchand
+- docs: translate CONTRIBUTING.md into French (230bb93) par benjaminmarchand
+
+### 🔧 Maintenance & Refactoring
+- Merge pull request #5 from cyberbobjr/feature/fully-automated-releases (c6836bc) par Benjamin MARCHAND
+- Merge pull request #4 from cyberbobjr/feature/no-admin-bypass-release (9a31c53) par Benjamin MARCHAND
+- Merge pull request #3 from cyberbobjr/feature/changelog-automation (e58e2a3) par Benjamin MARCHAND
+- Merge pull request #2 from cyberbobjr/feature/fix-release-workflow (57d8c21) par Benjamin MARCHAND
+- chore(ci): use RELEASE_TOKEN secret to bypass main branch protection on version bump (049a802) par benjaminmarchand
+- Merge pull request #1 from cyberbobjr/feature/ci-testing (39bdc75) par Benjamin MARCHAND
+- initial: First release 1.0.0-alpha for volunteer testing (3f857e5) par benjaminmarchand
+
+Toutes les modifications notables apportées à ce projet seront consignées dans ce fichier.
+
+Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
+
+---
