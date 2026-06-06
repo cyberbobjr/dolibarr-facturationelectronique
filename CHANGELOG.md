@@ -6,6 +6,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.2] - 2026-06-06
+
+### 📝 Documentation
+- docs: add user guide for configuration and usage with screenshots (a5b5752) par benjaminmarchand
+
+### 🔧 Maintenance & Refactoring
+- Merge pull request #7 from cyberbobjr/feature/add-user-guide (75ab0c9) par Benjamin MARCHAND
+
 ## [1.2.0-alpha.1] - 2026-06-05
 
 ### ✨ Nouvelles Fonctionnalités
