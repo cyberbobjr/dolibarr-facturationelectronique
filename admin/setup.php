@@ -258,6 +258,7 @@ if ($active_provider === 'superpdp') {
 }
 print '    <h3 class="fe-card-title" style="margin-top:10px;"><span class="fa fa-plug"></span> Configuration SuperPDP</h3>';
 print '    <form action="' . $_SERVER['PHP_SELF'] . '" method="post">';
+print '      <input type="hidden" name="token" value="' . newToken() . '">';
 print '      <input type="hidden" name="action" value="update_superpdp">';
 
 // Radio buttons for Sandbox vs Production Mode
@@ -324,6 +325,7 @@ if ($active_provider === 'factpulse') {
 }
 print '    <h3 class="fe-card-title" style="margin-top:10px;"><span class="fa fa-plug"></span> Configuration FactPulse</h3>';
 print '    <form action="' . $_SERVER['PHP_SELF'] . '" method="post">';
+print '      <input type="hidden" name="token" value="' . newToken() . '">';
 print '      <input type="hidden" name="action" value="update_factpulse">';
 
 print '      <div class="fe-form-group">';
