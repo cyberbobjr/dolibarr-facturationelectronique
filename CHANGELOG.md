@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.7] - 2026-06-26
+
+### 🐛 Corrections de Bugs
+- fix: correct TaxTotalAmount currencyID and payment amounts in EN16931 payload (fb35a38) par benjaminmarchand
+
 ## [1.2.0-alpha.6] - 2026-06-26
 
 ### 🐛 Corrections de Bugs
