@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.5] - 2026-06-26
+
+### 🐛 Corrections de Bugs
+- fix: correct invoice send payload and outbound list Dolibarr status (7dfefb9) par benjaminmarchand
+
 ## [1.2.0-alpha.4] - 2026-06-26
 
 ### 🐛 Corrections de Bugs
