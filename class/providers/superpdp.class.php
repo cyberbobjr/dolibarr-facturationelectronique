@@ -589,13 +589,20 @@ class SuperPdpProvider extends BaseFacturelectProvider
 						}
 					}
 
-					$desc = !empty($line['item_information']['name']) ? $line['item_information']['name'] : 'Ligne de facture';
+					$item_info = !empty($line['item_information']) ? $line['item_information'] : array();
+					$desc = !empty($item_info['name']) ? $item_info['name'] : 'Ligne de facture';
+					if (!empty($item_info['description']) && $item_info['description'] !== $desc) {
+						$desc .= ' — ' . $item_info['description'];
+					}
 
 					// Add discount info to description if present
 					if ($gross_price > 0 && $gross_price > $unit_price) {
 						$disc_amt = $gross_price - $unit_price;
 						$desc .= " (Remise unitaire: " . price($disc_amt) . ")";
 					}
+
+					// Try to match an existing Dolibarr product (buyer ref > seller ref > label)
+					$product_match = $this->findProductByLineInfo($item_info);
 
 					$line_result = $invoice_supplier->addline(
 						$desc,
@@ -604,14 +611,14 @@ class SuperPdpProvider extends BaseFacturelectProvider
 						0, // txlocaltax1
 						0, // txlocaltax2
 						$qty,
-						0, // fk_product
+						$product_match['id'], // fk_product (0 = free text if no match)
 						0, // remise_percent
 						0, // date_start
 						0, // date_end
 						0, // fk_code_ventilation
 						0, // info_bits
 						'HT', // price_base_type
-						0 // type
+						$product_match['type'] // type (0=product, 1=service)
 					);
 
 					if ($line_result <= 0) {
@@ -683,6 +690,64 @@ class SuperPdpProvider extends BaseFacturelectProvider
 		}
 
 		return $imported_count;
+	}
+
+	/**
+	 * Try to match an invoice line to an existing Dolibarr product.
+	 *
+	 * Lookup order (stops at first match):
+	 *   1. buyer_identifier (BT-156)  → llx_product.ref          (our own reference)
+	 *   2. seller_identifier (BT-155) → llx_product_fournisseur_price.ref_fourn
+	 *   3. name (BT-153)              → llx_product.label         (last resort)
+	 *
+	 * @param	array	$item_info	item_information block from EN16931 line
+	 * @return	array				['id' => int, 'type' => int]  (type 0=product, 1=service)
+	 */
+	private function findProductByLineInfo(array $item_info)
+	{
+		global $conf;
+
+		$not_found = array('id' => 0, 'type' => 1);
+		$entity = (int) $conf->entity;
+
+		// 1. Match by buyer_identifier → our own product ref
+		if (!empty($item_info['buyer_identifier'])) {
+			$ref = $this->db->escape($item_info['buyer_identifier']);
+			$sql = "SELECT rowid, fk_product_type FROM " . MAIN_DB_PREFIX . "product"
+				. " WHERE ref = '" . $ref . "' AND entity = " . $entity . " LIMIT 1";
+			$res = $this->db->query($sql);
+			if ($res && $this->db->num_rows($res) > 0) {
+				$row = $this->db->fetch_object($res);
+				return array('id' => (int) $row->rowid, 'type' => (int) $row->fk_product_type);
+			}
+		}
+
+		// 2. Match by seller_identifier → supplier's ref in purchase price table
+		if (!empty($item_info['seller_identifier'])) {
+			$ref_fourn = $this->db->escape($item_info['seller_identifier']);
+			$sql = "SELECT p.rowid, p.fk_product_type FROM " . MAIN_DB_PREFIX . "product p"
+				. " INNER JOIN " . MAIN_DB_PREFIX . "product_fournisseur_price pfp ON pfp.fk_product = p.rowid"
+				. " WHERE pfp.ref_fourn = '" . $ref_fourn . "' AND p.entity = " . $entity . " LIMIT 1";
+			$res = $this->db->query($sql);
+			if ($res && $this->db->num_rows($res) > 0) {
+				$row = $this->db->fetch_object($res);
+				return array('id' => (int) $row->rowid, 'type' => (int) $row->fk_product_type);
+			}
+		}
+
+		// 3. Match by name → product label (least reliable, avoid false positives on short names)
+		if (!empty($item_info['name']) && strlen($item_info['name']) > 3) {
+			$label = $this->db->escape($item_info['name']);
+			$sql = "SELECT rowid, fk_product_type FROM " . MAIN_DB_PREFIX . "product"
+				. " WHERE label = '" . $label . "' AND entity = " . $entity . " LIMIT 1";
+			$res = $this->db->query($sql);
+			if ($res && $this->db->num_rows($res) > 0) {
+				$row = $this->db->fetch_object($res);
+				return array('id' => (int) $row->rowid, 'type' => (int) $row->fk_product_type);
+			}
+		}
+
+		return $not_found;
 	}
 
 	/**
