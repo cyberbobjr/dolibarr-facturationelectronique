@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.4] - 2026-06-26
+
+### 🐛 Corrections de Bugs
+- fix(csrf): ajout du token CSRF manquant dans les formulaires SuperPDP et FactPulse (#9) (fd38b74) par benjaminmarchand
+
 ## [1.2.0-alpha.3] - 2026-06-26
 
 ### 🐛 Corrections de Bugs
