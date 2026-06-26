@@ -6,6 +6,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.3.0-alpha.1] - 2026-06-26
+
+### ✨ Nouvelles Fonctionnalités
+- feat: SIREN format validation and SuperPDP processing trigger (3d2ba58) par benjaminmarchand
+
+### 🐛 Corrections de Bugs
+- fix: respect Dolibarr SSL/proxy config in HTTP client (fixes WAMP/local SSL errors) (b5034d3) par benjaminmarchand
+
 ## [1.2.0-alpha.9] - 2026-06-26
 
 ### 📝 Documentation
