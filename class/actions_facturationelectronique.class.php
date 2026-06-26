@@ -739,6 +739,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$object->fetch_thirdparty();
 		}
 
+		// Lines may not be loaded yet when called from doActions hook (fired before fetch_lines in card.php)
+		if (empty($object->lines)) {
+			$object->fetch_lines();
+		}
+
 		$clean_buyer_siren = preg_replace('/\s+/', '', $object->thirdparty->idprof1);
 		if (empty($clean_buyer_siren)) {
 			$client = new FacturelectClient($this->db);

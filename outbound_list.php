@@ -245,7 +245,8 @@ if ($resql_count) {
 }
 
 // Build SQL Query - SELECT
-$sql = "SELECT f.rowid, f.ref, f.total_ht, f.total_ttc, f.datef, f.paye, f.fk_statut,";
+$sql = "SELECT f.rowid, f.ref, f.total_ht, f.total_ttc, f.datef, f.paye, f.fk_statut, f.type,";
+$sql .= " COALESCE((SELECT SUM(pf.amount) FROM " . MAIN_DB_PREFIX . "paiement_facture pf WHERE pf.fk_facture = f.rowid), 0) as total_regle,";
 $sql .= " s.rowid as socid, s.nom as client_name, s.siren as siren,";
 $sql .= " ex.facturelect_invoice_id, ex.facturelect_status as pdp_status";
 $sql .= " FROM " . MAIN_DB_PREFIX . "facture as f";
@@ -472,7 +473,8 @@ if ($num > 0) {
 		if (!empty($arrayfields['f.fk_statut']['checked'])) {
 			$facture_static->statut = $invoice->fk_statut;
 			$facture_static->paye = $invoice->paye;
-			print '<td>' . $facture_static->getLibStatut(3) . '</td>';
+			$facture_static->type = $invoice->type;
+			print '<td>' . $facture_static->getLibStatut(3, (float) $invoice->total_regle) . '</td>';
 		}
 		// Transmission PDP Status Badge
 		if (!empty($arrayfields['ex.facturelect_status']['checked'])) {
