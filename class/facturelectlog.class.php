@@ -26,7 +26,7 @@ class FacturelectLog
 	 * Log an API transaction to the audit database
 	 *
 	 * @param	DoliDB	$db					Database handler
-	 * @param	string	$provider			Provider name (e.g. SuperPDP, FactPulse)
+	 * @param	string	$provider			Provider name (e.g. SuperPDP)
 	 * @param	string	$action				Action or endpoint name
 	 * @param	string	$url				URL requested
 	 * @param	string	$method				HTTP method (GET, POST, etc.)

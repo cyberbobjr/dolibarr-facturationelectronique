@@ -147,12 +147,7 @@ if (empty($pdp_id)) {
 	}
 	
 	// Direct Link to Provider Portal dashboard
-	$portal_url = 'https://www.superpdp.tech';
-	$provider_code = getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER');
-	if ($provider_code === 'factpulse') {
-		$portal_url = 'https://factpulse.fr';
-	}
-	$direct_link = $portal_url . '/app/invoices/' . $pdp_id;
+	$direct_link = 'https://www.superpdp.tech/app/invoices/' . $pdp_id;
 	
 	print '        <tr><td style="padding:10px 0; font-weight:600; color:#475569;">' . $langs->trans("FacturelectTabDirectLinkPortal") . ' :</td><td style="padding:10px 0;"><a href="' . $direct_link . '" target="_blank" class="fe-btn fe-btn-secondary" style="font-size:11px; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; gap:5px;"><span class="fa fa-external-link-alt"></span> ' . $langs->trans("FacturelectTabOpenPortal", $provider_name) . '</a></td></tr>';
 	print '      </table>';

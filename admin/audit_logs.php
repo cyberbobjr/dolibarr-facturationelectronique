@@ -247,7 +247,7 @@ if ($res_logs && $db->num_rows($res_logs) > 0) {
 
 		print '    <tr class="oddeven">';
 		print '      <td class="liste_td" style="font-weight: 500;">' . dol_print_date($db->jdate($log->date_creation), 'dayhour') . '</td>';
-		print '      <td class="liste_td"><span class="fe-status-pill ' . ($log->provider === 'FactPulse' ? 'warning' : 'success') . '" style="font-size: 10px;">' . dol_escape_htmltag($log->provider) . '</span></td>';
+		print '      <td class="liste_td"><span class="fe-status-pill success" style="font-size: 10px;">' . dol_escape_htmltag($log->provider) . '</span></td>';
 		print '      <td class="liste_td" style="font-weight: 600;">' . dol_escape_htmltag($log->action) . '</td>';
 		print '      <td class="liste_td"><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 600;">' . dol_escape_htmltag($log->method) . '</code></td>';
 		print '      <td class="liste_td"><span class="fe-status-pill ' . $status_class . '">' . ($log->http_status ?: 'ERR') . '</span></td>';

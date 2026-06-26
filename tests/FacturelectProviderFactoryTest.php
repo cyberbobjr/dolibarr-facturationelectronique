@@ -25,15 +25,6 @@ class FacturelectProviderFactoryTest extends TestCase
 		$this->assertInstanceOf('SuperPdpProvider', $provider);
 	}
 
-	public function testGetProviderReturnsFactPulseWhenConfigured()
-	{
-		global $dolibarr_mock_globals;
-		$dolibarr_mock_globals['FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER'] = 'factpulse';
-
-		$provider = FacturelectProviderFactory::getProvider($this->db);
-		$this->assertInstanceOf('FactPulseProvider', $provider);
-	}
-
 	public function testGetProviderReturnsSuperPdpWhenExplicitlyConfigured()
 	{
 		global $dolibarr_mock_globals;

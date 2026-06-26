@@ -31,13 +31,6 @@ class FacturelectProviderFactory
 	 */
 	public static function getProvider($db)
 	{
-		$active = getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp');
-		if ($active === 'factpulse') {
-			require_once dirname(__FILE__) . '/providers/factpulse.class.php';
-			return new FactPulseProvider($db);
-		}
-
-		// Fallback to SuperPDP
 		require_once dirname(__FILE__) . '/providers/superpdp.class.php';
 		return new SuperPdpProvider($db);
 	}

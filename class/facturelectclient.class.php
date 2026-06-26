@@ -199,7 +199,7 @@ class FacturelectClient
 			return $this->provider->sendInvoiceEvent($pdp_id, $status_code, $details);
 		}
 
-		// Fallback for providers like FactPulse that use direct object payments
+		// Fallback: resolve invoice object from PDP ID and delegate to sendPaymentEvent
 		require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 		require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.facture.class.php';
 		

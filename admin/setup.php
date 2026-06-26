@@ -66,29 +66,9 @@ if ($action === 'update_superpdp') {
 	}
 }
 
-if ($action === 'update_factpulse') {
-	$email = GETPOST('factpulse_email', 'alpha');
-	$password = GETPOST('factpulse_password', 'alpha');
-
-	$res1 = dolibarr_set_const($db, 'FACTURATION_ELECTRONIQUE_FACTPULSE_EMAIL', $email, 'chaine', 0, 'FactPulse email login', $conf->entity);
-	$res2 = dolibarr_set_const($db, 'FACTURATION_ELECTRONIQUE_FACTPULSE_PASSWORD', $password, 'chaine', 0, 'FactPulse password login', $conf->entity);
-
-	// Force clean cached token on credentials update
-	require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
-	dolibarr_del_const($db, 'FACTUR_ELECT_FACTPULSE_TOKEN', $conf->entity);
-	dolibarr_del_const($db, 'FACTUR_ELECT_FACTPULSE_TOKEN_EXPIRES', $conf->entity);
-
-	if ($res1 >= 0 && $res2 >= 0) {
-		setEventMessages($langs->trans("SetupSaved") . " (FactPulse)", null, 'mesgs');
-	} else {
-		setEventMessages($langs->trans("ErrorFailedToSave"), null, 'errors');
-		$error++;
-	}
-}
-
 if ($action === 'activate_provider') {
 	$provider = GETPOST('provider', 'alpha');
-	if ($provider === 'superpdp' || $provider === 'factpulse') {
+	if ($provider === 'superpdp') {
 		$res = dolibarr_set_const($db, 'FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', $provider, 'chaine', 0, 'Active PDP Provider', $conf->entity);
 		if ($res >= 0) {
 			setEventMessages("Fournisseur actif mis a jour : " . strtoupper($provider), null, 'mesgs');
@@ -146,8 +126,6 @@ $sandbox_secret = getDolGlobalString('FACTURATION_ELECTRONIQUE_SANDBOX_CLIENT_SE
 $prod_id = getDolGlobalString('FACTURATION_ELECTRONIQUE_PROD_CLIENT_ID');
 $prod_secret = getDolGlobalString('FACTURATION_ELECTRONIQUE_PROD_CLIENT_SECRET');
 
-$factpulse_email = getDolGlobalString('FACTURATION_ELECTRONIQUE_FACTPULSE_EMAIL');
-$factpulse_password = getDolGlobalString('FACTURATION_ELECTRONIQUE_FACTPULSE_PASSWORD');
 $active_provider = getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp');
 
 // Layout headers
@@ -310,41 +288,6 @@ print '      </div>';
 print '      <div style="margin-top: 20px; display:flex; gap:10px;">';
 print '        <button type="submit" class="fe-btn fe-btn-primary"><span class="fa fa-save"></span> ' . $langs->trans("Save") . '</button>';
 if ($active_provider === 'superpdp') {
-	print '        <a href="' . $_SERVER['PHP_SELF'] . '?action=test_conn" class="fe-btn fe-btn-secondary"><span class="fa fa-vial"></span> ' . $langs->trans("FacturelectConnectionTest") . '</a>';
-}
-print '      </div>';
-print '    </form>';
-print '  </div>';
-
-// 2B. FactPulse Settings Card
-print '  <div class="fe-card" style="position:relative;' . ($active_provider === 'factpulse' ? 'border: 2px solid #10b981; box-shadow:0 0 10px rgba(16,185,129,0.1);' : 'opacity:0.85;') . '">';
-if ($active_provider === 'factpulse') {
-	print '    <span class="fe-status-pill success" style="position:absolute; top:20px; right:20px;"><span class="fa fa-check"></span> FOURNISSEUR ACTIF</span>';
-} else {
-	print '    <a href="' . $_SERVER['PHP_SELF'] . '?action=activate_provider&provider=factpulse" class="fe-btn fe-btn-secondary" style="position:absolute; top:20px; right:20px;"><span class="fa fa-power-off"></span> Activer</a>';
-}
-print '    <h3 class="fe-card-title" style="margin-top:10px;"><span class="fa fa-plug"></span> Configuration FactPulse</h3>';
-print '    <form action="' . $_SERVER['PHP_SELF'] . '" method="post">';
-print '      <input type="hidden" name="token" value="' . newToken() . '">';
-print '      <input type="hidden" name="action" value="update_factpulse">';
-
-print '      <div class="fe-form-group">';
-print '        <label>Email de connexion (Username)</label>';
-print '        <input type="text" class="fe-input" name="factpulse_email" value="' . dol_escape_htmltag($factpulse_email) . '" placeholder="compta@entreprise.fr">';
-print '      </div>';
-
-print '      <div class="fe-form-group">';
-print '        <label>Mot de passe</label>';
-print '        <div class="fe-input-wrapper">';
-print '          <input type="password" class="fe-input" id="factpulse_password" name="factpulse_password" value="' . dol_escape_htmltag($factpulse_password) . '">';
-print '          <button type="button" class="fe-toggle-pwd" onclick="togglePwd(\'factpulse_password\')"><span class="fa fa-eye" id="eye-factpulse_password"></span></button>';
-print '        </div>';
-print '      </div>';
-
-// Action Buttons
-print '      <div style="margin-top: 20px; display:flex; gap:10px;">';
-print '        <button type="submit" class="fe-btn fe-btn-primary"><span class="fa fa-save"></span> ' . $langs->trans("Save") . '</button>';
-if ($active_provider === 'factpulse') {
 	print '        <a href="' . $_SERVER['PHP_SELF'] . '?action=test_conn" class="fe-btn fe-btn-secondary"><span class="fa fa-vial"></span> ' . $langs->trans("FacturelectConnectionTest") . '</a>';
 }
 print '      </div>';
