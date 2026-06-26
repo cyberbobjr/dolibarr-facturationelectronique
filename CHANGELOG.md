@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.6] - 2026-06-26
+
+### 🐛 Corrections de Bugs
+- fix: convert negative Dolibarr lines to EN16931 document-level allowances (2335710) par benjaminmarchand
+
 ## [1.2.0-alpha.5] - 2026-06-26
 
 ### 🐛 Corrections de Bugs
