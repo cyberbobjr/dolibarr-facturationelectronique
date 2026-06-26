@@ -273,6 +273,12 @@
 	color: #075985;
 }
 
+.fe-alert-warning {
+	background-color: #fffbeb;
+	border: 1px solid #fcd34d;
+	color: #92400e;
+}
+
 .fe-results-table {
 	width: 100%;
 	border-collapse: collapse;
@@ -538,6 +544,17 @@
 	padding: 6px 12px;
 	font-size: 12px;
 	border-radius: 4px;
+}
+
+.fe-btn-danger {
+	background: #fef2f2;
+	color: #ef4444 !important;
+	border: 1px solid #fecaca;
+}
+
+.fe-btn-danger:hover {
+	background: #fee2e2;
+	color: #dc2626 !important;
 }
 
 .fe-text-danger {

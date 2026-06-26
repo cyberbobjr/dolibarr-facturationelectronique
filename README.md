@@ -28,6 +28,8 @@ Ce module permet de mettre en conformité Dolibarr avec la future réglementatio
 2. **Factures Émises (Ventes)** :
    - Conversion automatique des factures clients validées au format certifié Factur-X (PDF avec XML embarqué).
    - Transmission sécurisée vers la plateforme PDP avec gestion des retours d'états et bandeau de notification.
+   - **Validation pré-envoi** : le module vérifie que le SIREN de l'émetteur et du destinataire sont présents et composés exactement de 9 chiffres (détection automatique de la confusion SIREN/SIRET). L'envoi est bloqué avec un message d'erreur explicite en cas d'anomalie.
+   - **Avertissement de routage PPF** (mode production) : si le tiers destinataire n'a pas encore été associé à son identifiant PEPPOL via l'annuaire, un bandeau d'alerte signale le risque de non-délivrance et propose de lancer la recherche d'association.
 
 3. **Factures Reçues (Achats)** :
    - Récupération planifiée des factures fournisseurs depuis le PDP via des tâches cron Dolibarr.

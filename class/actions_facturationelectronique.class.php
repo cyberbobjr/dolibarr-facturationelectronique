@@ -605,6 +605,78 @@ class ActionsFacturationelectronique extends CommonHookActions
 			global $mysoc;
 			$seller_siren = preg_replace('/\s+/', '', $mysoc->idprof1);
 
+			// Validate SIREN formats (exactly 9 digits required or empty)
+			$seller_siren_invalid = empty($seller_siren) || (strlen($seller_siren) !== 9 || !ctype_digit($seller_siren));
+			$buyer_siren_invalid = empty($buyer_siren) || (strlen($buyer_siren) !== 9 || !ctype_digit($buyer_siren));
+
+			// Check buyer PEPPOL routing association (facturelect_id extrafield)
+			// In production: empty facturelect_id means routing falls back to raw SIREN — buyer may not be registered in PPF
+			// In sandbox: SIREN always gets the sandbox prefix automatically, so no risk
+			if (empty($object->thirdparty->array_options)) {
+				$object->thirdparty->fetch_optionals();
+			}
+			$buyer_facturelect_id = !empty($object->thirdparty->array_options['options_facturelect_id']) ? $object->thirdparty->array_options['options_facturelect_id'] : '';
+			$fe_mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE');
+			$buyer_not_associated = empty($buyer_facturelect_id) && $fe_mode === 'production';
+
+			// Build warning banner (non-blocking) for missing PEPPOL association in production
+			$warning_html = '';
+			if ($buyer_not_associated && !$buyer_siren_invalid) {
+				$warning_html .= '<div class="fe-alert fe-alert-warning fe-invoice-config-warning" style="margin-bottom:10px; display:flex; align-items:flex-start; gap:10px; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:12px;">';
+				$warning_html .= '<span class="fa fa-exclamation-circle" style="color:#f59e0b; font-size:20px; margin-top:2px; flex-shrink:0;"></span>';
+				$warning_html .= '<div><strong style="color:#92400e;">Tiers non associé à l\'annuaire PDP</strong><br/>';
+				$warning_html .= 'Ce tiers n\'a pas été associé via l\'annuaire. La facture sera routée par SIREN (<code style="background:#fef3c7; padding:2px 6px; border-radius:3px;">0225:'.dol_escape_htmltag($buyer_siren).'</code>).<br/>';
+				$warning_html .= 'Si ce tiers n\'est pas inscrit au <strong>Portail Public de Facturation (PPF)</strong>, la facture sera transmise mais jamais délivrée au destinataire.<br/>';
+				$warning_html .= '<a href="#" onclick="feOpenModal('.$thirdparty_id.'); return false;" class="butAction" style="margin-top:8px; display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:4px 10px; border:1px solid #d97706!important; border-radius:6px; color:#ffffff!important; background:#f59e0b!important; background-image:none!important; text-decoration:none!important;">';
+				$warning_html .= '<span class="fa fa-search"></span> Vérifier et associer ce tiers';
+				$warning_html .= '</a></div></div>';
+			}
+
+			// Build configuration error banners
+			$config_error_html = '';
+			if ($seller_siren_invalid) {
+				$seller_siren_length = strlen($seller_siren);
+				$config_error_html .= '<div class="fe-alert fe-alert-danger fe-invoice-config-error" style="margin-bottom:10px; display:flex; align-items:flex-start; gap:10px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px;">';
+				$config_error_html .= '<span class="fa fa-exclamation-triangle" style="color:#ef4444; font-size:20px; margin-top:2px; flex-shrink:0;"></span>';
+				$config_error_html .= '<div><strong style="color:#991b1b;">Erreur de configuration : SIREN de votre entreprise</strong><br/>';
+				if (empty($seller_siren)) {
+					$config_error_html .= 'Le SIREN (Prof Id 1 / MAIN_INFO_SIREN) de votre societe n\'est pas renseigne. L\'envoi electronique requiert un SIREN valide a 9 chiffres.<br/>';
+				} else {
+					$config_error_html .= 'Le champ SIREN (Prof Id 1 / MAIN_INFO_SIREN) de votre societe contient <strong>'.$seller_siren_length.' chiffres</strong> au lieu de 9.<br/>';
+					if ($seller_siren_length === 14) {
+						$config_error_html .= 'Il semble que vous ayez saisi un <strong>SIRET</strong> (14 chiffres) au lieu du <strong>SIREN</strong> (9 chiffres). Pour rappel, le SIRET correspond au SIREN (9 premiers chiffres) + NIC (5 derniers chiffres).<br/>';
+					}
+					$config_error_html .= '<em>Valeur actuelle : <code style="background:#fee; padding:2px 6px; border-radius:3px;">'.dol_escape_htmltag($seller_siren).'</code></em><br/>';
+				}
+				$config_error_html .= '<a href="'.DOL_URL_ROOT.'/admin/company.php" target="_blank" class="butAction" style="margin-top:8px; display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:4px 10px; border:1px solid #dc2626!important; border-radius:6px; color:#ffffff!important; background:#ef4444!important; background-image:none!important; text-decoration:none!important;">';
+				$config_error_html .= '<span class="fa fa-wrench"></span> Corriger dans la configuration societe';
+				$config_error_html .= '</a>';
+				$config_error_html .= '</div></div>';
+			}
+			if ($buyer_siren_invalid) {
+				$buyer_siren_length = strlen($buyer_siren);
+				$config_error_html .= '<div class="fe-alert fe-alert-danger fe-invoice-config-error" style="margin-bottom:10px; display:flex; align-items:flex-start; gap:10px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px;">';
+				$config_error_html .= '<span class="fa fa-exclamation-triangle" style="color:#ef4444; font-size:20px; margin-top:2px; flex-shrink:0;"></span>';
+				$config_error_html .= '<div><strong style="color:#991b1b;">Erreur : SIREN du client</strong><br/>';
+				if (empty($buyer_siren)) {
+					$config_error_html .= 'Le SIREN (Prof Id 1) du client <strong>'.dol_escape_htmltag($object->thirdparty->name).'</strong> n\'est pas renseigne. L\'envoi electronique requiert un SIREN valide a 9 chiffres.<br/>';
+				} else {
+					$config_error_html .= 'Le champ SIREN (Prof Id 1) du client <strong>'.dol_escape_htmltag($object->thirdparty->name).'</strong> contient <strong>'.$buyer_siren_length.' chiffres</strong> au lieu de 9.<br/>';
+					if ($buyer_siren_length === 14) {
+						$config_error_html .= 'Il semble que vous ayez saisi un <strong>SIRET</strong> (14 chiffres) au lieu du <strong>SIREN</strong> (9 chiffres).<br/>';
+					}
+					$config_error_html .= '<em>Valeur actuelle : <code style="background:#fee; padding:2px 6px; border-radius:3px;">'.dol_escape_htmltag($buyer_siren).'</code></em><br/>';
+				}
+				$config_error_html .= '<a href="'.DOL_URL_ROOT.'/societe/card.php?socid='.((int) $object->thirdparty->id).'" target="_blank" class="butAction" style="margin-top:8px; display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:4px 10px; border:1px solid #dc2626!important; border-radius:6px; color:#ffffff!important; background:#ef4444!important; background-image:none!important; text-decoration:none!important;">';
+				$config_error_html .= '<span class="fa fa-wrench"></span> Corriger la fiche tiers';
+				$config_error_html .= '</a>';
+				// Also offer the modal search/associate button for cases where the customer SIREN is missing or wrong
+				$config_error_html .= ' <a href="#" onclick="feOpenModal('.$thirdparty_id.'); return false;" class="butAction" style="margin-top:8px; display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:4px 10px; border:1px solid #dc2626!important; border-radius:6px; color:#ffffff!important; background:#ef4444!important; background-image:none!important; text-decoration:none!important;">';
+				$config_error_html .= '<span class="fa fa-search"></span> Rechercher et associer';
+				$config_error_html .= '</a>';
+				$config_error_html .= '</div></div>';
+			}
+
 			$client = new FacturelectClient($this->db);
 			$provider_name = $client->getProviderName();
 
@@ -613,14 +685,14 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$banner_html = '';
 			if ($object->statut == 0) {
 				// Draft
-				$banner_html = '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
+				$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
 				$banner_html .= '<span class="fa fa-info-circle" style="font-size: 20px; margin-top: 2px;"></span>';
 				$banner_html .= '<div><strong>Facturation Électronique (B2B)</strong><br/>';
 				$banner_html .= 'Cette facture est actuellement à l\'état de <strong>Brouillon</strong>. Veuillez valider la facture pour l\'envoyer électroniquement via ' . dol_escape_htmltag($provider_name) . '.</div>';
 				$banner_html .= '</div>';
 			} else {
 				if ($pdp_status === 'transmitted') {
-					$banner_html = '<div class="fe-alert fe-alert-success fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-success fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-check-circle" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Facture transmise avec succès au PDP</strong><br/>';
 					$banner_html .= 'Cette facture a été convertie en format Factur-X certifié et transmise sur le réseau national.<br/>';
@@ -637,13 +709,13 @@ class ActionsFacturationelectronique extends CommonHookActions
 					}
 					$banner_html .= '</div></div>';
 				} elseif ($pdp_status === 'queued') {
-					$banner_html = '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-clock" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Facture en cours de traitement / File d\'attente</strong><br/>';
 					$banner_html .= 'La facture est planifiée pour envoi au PDP et sera transmise sous peu.</div>';
 					$banner_html .= '</div>';
 				} elseif ($pdp_status === 'failed') {
-					$banner_html = '<div class="fe-alert fe-alert-danger fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-danger fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-exclamation-triangle" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Échec de la transmission électronique</strong><br/>';
 					$banner_html .= 'La transmission a échoué. Veuillez vérifier les informations et réessayer.<br/>';
@@ -655,7 +727,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					$banner_html .= '</a>';
 					$banner_html .= '</div></div>';
 				} else { // not_sent
-					$banner_html = '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-file-invoice-dollar" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Prête pour Facturation Électronique (B2B)</strong><br/>';
 					$banner_html .= 'Cette facture est validée et peut être transmise instantanément sous forme de Factur-X certifié au réseau national via ' . dol_escape_htmltag($provider_name) . '.<br/>';
@@ -698,7 +770,8 @@ class ActionsFacturationelectronique extends CommonHookActions
 
 			// Standard Actions Bar Button (only when validated/paid)
 			if ($object->statut == 1 || $object->statut == 2) {
-				if (!empty($buyer_siren)) {
+				$can_send = !$seller_siren_invalid && !$buyer_siren_invalid;
+				if ($can_send) {
 					if ($pdp_status === 'transmitted') {
 						echo '<a class="butAction fe-btn-secondary" id="fe-resend-btn" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
 						echo '<span class="fa fa-paper-plane paddingrightonly"></span> Renvoyer au format électronique';
@@ -708,9 +781,16 @@ class ActionsFacturationelectronique extends CommonHookActions
 						echo '<span class="fa fa-paper-plane paddingrightonly"></span> ' . $langs->trans('FacturelectSendInvoice');
 						echo '</a>';
 					}
-				} else {
-					echo '<a class="butAction fe-btn-warning" id="fe-associate-btn" href="#" onclick="feOpenModal(' . $thirdparty_id . '); return false;" title="SIREN manquant. Cliquer pour rechercher et associer ce tiers.">';
-					echo '<span class="fa fa-search paddingrightonly"></span> Associer le tiers (requis)';
+				} elseif ($seller_siren_invalid) {
+					echo '<a class="butAction" id="fe-config-btn" href="'.DOL_URL_ROOT.'/admin/company.php" target="_blank" style="border:1px solid #dc2626!important; color:#ffffff!important; background:#ef4444!important; background-image:none!important;" title="Le SIREN de votre entreprise est invalide ou manquant. Cliquer pour corriger.">';
+					echo '<span class="fa fa-wrench paddingrightonly"></span> Corriger SIREN société';
+					echo '</a>';
+				} elseif ($buyer_siren_invalid) {
+					echo '<a class="butAction" id="fe-client-siren-btn" href="'.DOL_URL_ROOT.'/societe/card.php?socid='.((int) $object->thirdparty->id).'" target="_blank" style="border:1px solid #dc2626!important; color:#ffffff!important; background:#ef4444!important; background-image:none!important;" title="Le SIREN du client est invalide ou manquant. Cliquer pour corriger.">';
+					echo '<span class="fa fa-wrench paddingrightonly"></span> Corriger SIREN client';
+					echo '</a>';
+					echo ' <a class="butAction" href="#" onclick="feOpenModal('.$thirdparty_id.'); return false;" style="border:1px solid #dc2626!important; color:#ffffff!important; background:#ef4444!important; background-image:none!important;" title="Rechercher et associer le tiers via l\'annuaire.">';
+					echo '<span class="fa fa-search paddingrightonly"></span> Rechercher et associer';
 					echo '</a>';
 				}
 				if (!empty($pdp_id)) {
@@ -750,10 +830,26 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$this->error = "Le SIREN (Prof Id 1) du client est requis pour l envoi via " . $client->getProviderName();
 			return false;
 		}
+		if (strlen($clean_buyer_siren) !== 9 || !ctype_digit($clean_buyer_siren)) {
+			if (strlen($clean_buyer_siren) === 14 && ctype_digit($clean_buyer_siren)) {
+				$this->error = "Le SIREN du client contient 14 chiffres. Vous avez saisi un SIRET au lieu d un SIREN (9 chiffres). Veuillez corriger la fiche tiers.";
+			} else {
+				$this->error = "Le SIREN du client est invalide (" . strlen($clean_buyer_siren) . " caracteres). Un SIREN doit comporter exactement 9 chiffres. Valeur actuelle : " . $clean_buyer_siren;
+			}
+			return false;
+		}
 
 		$clean_seller_siren = preg_replace('/\s+/', '', $mysoc->idprof1);
 		if (empty($clean_seller_siren)) {
 			$this->error = "Le SIREN (Prof Id 1) de votre propre entreprise n est pas configure dans Dolibarr";
+			return false;
+		}
+		if (strlen($clean_seller_siren) !== 9 || !ctype_digit($clean_seller_siren)) {
+			if (strlen($clean_seller_siren) === 14 && ctype_digit($clean_seller_siren)) {
+				$this->error = "Le SIREN de votre entreprise contient 14 chiffres. Vous avez saisi un SIRET au lieu d un SIREN (9 chiffres). Veuillez corriger dans Configuration > Societe.";
+			} else {
+				$this->error = "Le SIREN de votre entreprise est invalide (" . strlen($clean_seller_siren) . " caracteres). Un SIREN doit comporter exactement 9 chiffres. Valeur actuelle : " . $clean_seller_siren;
+			}
 			return false;
 		}
 

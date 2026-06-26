@@ -158,6 +158,9 @@ if ($action === 'send') {
 						} else {
 							$pdp_id = $send_res['id'];
 
+							// Trigger SuperPDP async processing: the backend only starts validation when the invoice is polled
+							$client->getInvoice($pdp_id);
+
 							// 1. Update Extrafields safely according to AGENTS.md Rule 9 (triggers might regenerate standard PDF here, so we do it first)
 							$invoice->array_options['options_facturelect_invoice_id'] = $pdp_id;
 							$invoice->array_options['options_facturelect_status'] = 'transmitted';

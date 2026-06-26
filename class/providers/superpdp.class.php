@@ -197,7 +197,19 @@ class SuperPdpProvider extends BaseFacturelectProvider
 		if (!empty($pdf_path) && file_exists($pdf_path)) {
 			return $this->callApiMultipartConvert('/invoices/convert?from=en16931&to=factur-x', $en_invoice, $pdf_path);
 		}
-		return $this->callApi('POST', '/invoices/convert?from=en16931&to=factur-x', $en_invoice, false, 'application/json', true);
+		// JSON-only path: bypass callApi() to set explicit Content-Length and avoid chunked transfer encoding
+		$token = $this->getAccessToken();
+		if (!$token) {
+			return false;
+		}
+		$json_body = json_encode($en_invoice);
+		$url = $this->api_url . '/v1.beta/invoices/convert?from=en16931&to=factur-x';
+		$headers = array(
+			'Authorization: Bearer ' . $token,
+			'Content-Type: application/json',
+			'Content-Length: ' . strlen($json_body),
+		);
+		return $this->sendHttpRequest($url, 'POST', $headers, $json_body, true, 'application/json', true);
 	}
 
 	/**
