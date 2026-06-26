@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.3.0-alpha.2] - 2026-06-26
+
+### 🐛 Corrections de Bugs
+- fix: declare required Dolibarr module dependencies (264edd4) par benjaminmarchand
+
 ## [1.3.0-alpha.1] - 2026-06-26
 
 ### ✨ Nouvelles Fonctionnalités
