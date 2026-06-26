@@ -52,7 +52,7 @@ class modFacturationElectronique extends DolibarrModules
 		$this->picto = 'fa-file-invoice-dollar';
 
 		$this->dirs = array();
-		$this->depends = array();
+		$this->depends = array("modSociete", "modFacture", "modFournisseur");
 		$this->requiredby = array();
 
 		$this->config_page_url = array("setup.php@facturationelectronique");
