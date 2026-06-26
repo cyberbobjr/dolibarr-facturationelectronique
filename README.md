@@ -6,7 +6,7 @@ Ce module permet de mettre en conformité Dolibarr avec la future réglementatio
 > **VERSION ALPHA** : Cette version est destinée exclusivement aux tests en environnement de bac à sable (sandbox) et pour des testeurs volontaires. **Ne pas utiliser en production.** Assurez-vous de sauvegarder votre base de données avant l'installation ou la mise à jour.
 
 > [!IMPORTANT]
-> **Compatibilité des Plateformes** : Seuls les tests d'intégration avec **SuperPDP** ont été poussés à fond et validés. L'intégration avec **FactPulse** n'est pas garantie et reste incertaine, faute de support technique de leur part.
+> **Compatibilité des Plateformes** : Ce module fonctionne exclusivement avec **SuperPDP**, plateforme agréée DGFiP, dont l'intégration a été entièrement validée.
 
 ---
 
@@ -14,7 +14,7 @@ Ce module permet de mettre en conformité Dolibarr avec la future réglementatio
 
 - **Dolibarr** : Version 20.0+ (requis pour la gestion native des colonnes SIREN/SIRET en base de données).
 - **PHP** : Version 8.1 ou supérieure.
-- **Accès PDP** : Un compte actif auprès d'un opérateur de facturation compatible (ex. **SuperPDP** ou **FactPulse**) avec des identifiants et clés d'API valides.
+- **Accès PDP** : Un compte actif auprès de **SuperPDP** avec des identifiants et clés d'API valides.
 
 ---
 
@@ -57,11 +57,8 @@ Ce module permet de mettre en conformité Dolibarr avec la future réglementatio
 ## Configuration
 
 1. Cliquez sur l'icône d'engrenage de configuration du module.
-2. Sélectionnez et activez le fournisseur actif (ex. **SuperPDP**).
-3. Renseignez vos identifiants d'API :
-   - Pour **SuperPDP** : sélectionnez le mode (**Bac à sable** ou **Production**) et saisissez le *Client ID* et le *Client Secret* correspondants.
-   - Pour **FactPulse** : saisissez l'adresse *Email* et le *Mot de passe* associés.
-4. Cliquez sur **Enregistrer** pour sauvegarder les modifications.
+2. Renseignez vos identifiants d'API **SuperPDP** : sélectionnez le mode (**Bac à sable** ou **Production**) et saisissez le *Client ID* et le *Client Secret* correspondants.
+3. Cliquez sur **Enregistrer** pour sauvegarder les modifications.
 5. Validez la connexion avec le bouton de **Test de connexion** intégré.
 
 ---
