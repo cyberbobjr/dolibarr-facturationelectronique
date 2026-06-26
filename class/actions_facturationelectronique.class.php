@@ -865,6 +865,10 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$legal_buyer_siren = $matches[1];
 		}
 
+		// Compute remaining amount due (not auto-hydrated by fetch())
+		$total_paid = $object->getSommePaiement();
+		$remains_to_pay = round(floatval($object->total_ttc) - $total_paid, 2);
+
 		// Build final payload matching EN16931 exactly
 		$en_invoice = array(
 			'number' => $object->ref,
@@ -944,10 +948,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 				// BT-109: net total after allowances = BT-106 - BT-107
 				'total_without_vat' => sprintf("%.2f", floatval($object->total_ht)),
 				'total_with_vat' => sprintf("%.2f", floatval($object->total_ttc)),
-				'paid_amount' => sprintf("%.2f", floatval($object->total_ttc - $object->remains_to_pay)),
-				'amount_due_for_payment' => sprintf("%.2f", floatval($object->remains_to_pay)),
+				'paid_amount' => sprintf("%.2f", $total_paid),
+				'amount_due_for_payment' => sprintf("%.2f", $remains_to_pay),
 				'rounding_amount' => '0.00',
 				'total_vat_amount' => array(
+					'currency_code' => 'EUR',
 					'value' => sprintf("%.2f", floatval($object->total_tva))
 				)
 			),
