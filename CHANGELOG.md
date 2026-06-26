@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.1] - 2026-06-26
+
+### ✨ Nouvelles Fonctionnalités
+- feat: match imported supplier invoice lines to existing products (901e9e6) par benjaminmarchand
+
 ## [1.3.0-alpha.2] - 2026-06-26
 
 ### 🐛 Corrections de Bugs
