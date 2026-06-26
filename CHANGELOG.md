@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.9] - 2026-06-26
+
+### 📝 Documentation
+- docs: remove FactPulse references from README (ad2ef60) par benjaminmarchand
+
 ## [1.2.0-alpha.8] - 2026-06-26
 
 ### 🔧 Maintenance & Refactoring
