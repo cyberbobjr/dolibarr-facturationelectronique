@@ -61,11 +61,32 @@ abstract class BaseFacturelectProvider implements FacturelectProvider
 	 */
 	protected function sendHttpRequest($url, $method, $headers = array(), $params = null, $raw_data = false, $mime_type = 'application/json', $raw_response = false, $action = '')
 	{
+		global $dolibarr_main_prod;
+
+		// Mirror Dolibarr's getURLContent() SSL logic: disable peer verification on dev environments
+		// or when the admin explicitly sets MAIN_CURL_DISABLE_VERIFYPEER (fixes WAMP/local setups
+		// where curl.cainfo is not configured in php.ini — see AGENTS.md for context).
+		$ssl_verifypeer = !empty($dolibarr_main_prod);
+		if (getDolGlobalString('MAIN_CURL_DISABLE_VERIFYPEER')) {
+			$ssl_verifypeer = false;
+		}
+
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $ssl_verifypeer);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $ssl_verifypeer ? 2 : 0);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, getDolGlobalInt('MAIN_USE_CONNECT_TIMEOUT', 5));
+		curl_setopt($ch, CURLOPT_TIMEOUT, getDolGlobalInt('MAIN_USE_RESPONSE_TIMEOUT', 30));
+
+		// Respect Dolibarr proxy settings (MAIN_PROXY_*)
+		if (getDolGlobalString('MAIN_PROXY_USE')) {
+			curl_setopt($ch, CURLOPT_PROXY, getDolGlobalString('MAIN_PROXY_HOST'));
+			curl_setopt($ch, CURLOPT_PROXYPORT, getDolGlobalInt('MAIN_PROXY_PORT'));
+			if (getDolGlobalString('MAIN_PROXY_USER')) {
+				curl_setopt($ch, CURLOPT_PROXYUSERPWD, getDolGlobalString('MAIN_PROXY_USER') . ':' . getDolGlobalString('MAIN_PROXY_PASS'));
+			}
+		}
 
 		$method = strtoupper($method);
 		if ($method === 'POST') {
