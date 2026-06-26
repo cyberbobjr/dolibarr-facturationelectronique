@@ -770,18 +770,38 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		// Formulate lines
+		// EN16931 rule BR-27 forbids negative item_net_price (BT-146).
+		// Dolibarr encodes global discounts and advance-payment deductions as negative lines.
+		// These must become document-level allowances (BG-20) instead.
 		$lines = array();
+		$document_level_allowances = array();
 		$line_count = 1;
-		
+		$sum_positive_lines_ht = 0.0;
+		$sum_allowances_ht = 0.0;
+
 		foreach ($object->lines as $line) {
 			$qty = !empty($line->qty) ? floatval($line->qty) : 1.0;
-			$net_price = floatval($line->subprice); // price HT
+			$total_ht = floatval($line->total_ht);
+
+			if ($total_ht < 0) {
+				$sum_allowances_ht += abs($total_ht);
+				$document_level_allowances[] = array(
+					'amount' => sprintf("%.2f", abs($total_ht)),
+					'reason' => !empty($line->desc) ? strip_tags($line->desc) : 'Remise',
+					'vat_category_code' => 'S',
+					'vat_rate' => sprintf("%.1f", floatval($line->tva_tx))
+				);
+				continue;
+			}
+
+			$net_price = floatval($line->subprice);
+			$sum_positive_lines_ht += $total_ht;
 
 			$lines[] = array(
 				'identifier' => (string) $line_count,
 				'invoiced_quantity' => sprintf("%.2f", $qty),
-				'invoiced_quantity_code' => 'C62', // Pieces
-				'net_amount' => sprintf("%.2f", $line->total_ht),
+				'invoiced_quantity_code' => 'C62',
+				'net_amount' => sprintf("%.2f", $total_ht),
 				'price_details' => array(
 					'item_net_price' => sprintf("%.2f", $net_price)
 				),
@@ -916,14 +936,17 @@ class ActionsFacturationelectronique extends CommonHookActions
 				)
 			),
 			'totals' => array(
-				'sum_invoice_lines_amount' => sprintf("%.2f", floatval($object->total_ht)),
+				// BT-106: sum of positive invoice line net amounts (excludes document-level allowances)
+				'sum_invoice_lines_amount' => sprintf("%.2f", $sum_positive_lines_ht),
+				// BT-107: total of document-level allowances (discounts, advance-payment deductions)
+				'sum_allowances_amount' => sprintf("%.2f", $sum_allowances_ht),
+				'sum_charges_amount' => '0.00',
+				// BT-109: net total after allowances = BT-106 - BT-107
 				'total_without_vat' => sprintf("%.2f", floatval($object->total_ht)),
 				'total_with_vat' => sprintf("%.2f", floatval($object->total_ttc)),
 				'paid_amount' => sprintf("%.2f", floatval($object->total_ttc - $object->remains_to_pay)),
 				'amount_due_for_payment' => sprintf("%.2f", floatval($object->remains_to_pay)),
 				'rounding_amount' => '0.00',
-				'sum_allowances_amount' => '0.00',
-				'sum_charges_amount' => '0.00',
 				'total_vat_amount' => array(
 					'value' => sprintf("%.2f", floatval($object->total_tva))
 				)
@@ -931,6 +954,10 @@ class ActionsFacturationelectronique extends CommonHookActions
 			'vat_break_down' => $vat_breakdowns,
 			'lines' => $lines
 		);
+
+		if (!empty($document_level_allowances)) {
+			$en_invoice['document_level_allowances'] = $document_level_allowances;
+		}
 
 		if (!empty($object->date_lim_reglement)) {
 			$en_invoice['payment_due_date'] = dol_print_date($object->date_lim_reglement, '%Y-%m-%d');
