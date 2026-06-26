@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0-alpha.8] - 2026-06-26
+
+### 🔧 Maintenance & Refactoring
+- refactor: remove FactPulse provider (non-agréé DGFiP) (f8405d6) par benjaminmarchand
+
 ## [1.2.0-alpha.7] - 2026-06-26
 
 ### 🐛 Corrections de Bugs
