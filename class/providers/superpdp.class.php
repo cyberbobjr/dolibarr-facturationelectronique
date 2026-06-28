@@ -551,6 +551,7 @@ class SuperPdpProvider extends BaseFacturelectProvider
 			$invoice_supplier->id = $invoice_supplier_id;
 
 			// Add invoice lines
+			$vat_fallback_used = false;
 			if (!empty($en_invoice['lines'])) {
 				foreach ($en_invoice['lines'] as $line) {
 					$qty = !empty($line['invoiced_quantity']) ? floatval($line['invoiced_quantity']) : 1.0;
@@ -573,20 +574,36 @@ class SuperPdpProvider extends BaseFacturelectProvider
 						$unit_price = $line_amount / $qty;
 					}
 
-					// Resolve VAT rate with strict isset checks to handle 0% correctly
-					$vat_rate = 20.0; // Default 20%
+					// Resolve VAT rate — strict isset to handle 0% correctly (see CLAUDE.md #37)
+					$vat_rate = 20.0;
+					$vat_rate_resolved = false;
 					if (isset($line['vat_information']['invoiced_item_vat_rate'])) {
 						$vat_rate = floatval($line['vat_information']['invoiced_item_vat_rate']);
+						$vat_rate_resolved = true;
 					} elseif (isset($line['item_information']['vat_rate'])) {
 						$vat_rate = floatval($line['item_information']['vat_rate']);
+						$vat_rate_resolved = true;
 					} elseif (isset($line['vat_rate'])) {
 						$vat_rate = floatval($line['vat_rate']);
+						$vat_rate_resolved = true;
+					} elseif (isset($line['tax_rate'])) {
+						$vat_rate = floatval($line['tax_rate']);
+						$vat_rate_resolved = true;
+					} elseif (isset($line['vat']['rate'])) {
+						$vat_rate = floatval($line['vat']['rate']);
+						$vat_rate_resolved = true;
 					} elseif (isset($line['tax_amount']) && isset($line['net_amount'])) {
 						$line_net = floatval($line['net_amount']);
 						$line_tax = floatval($line['tax_amount']);
 						if ($line_net > 0) {
 							$vat_rate = round(($line_tax / $line_net) * 100, 2);
+							$vat_rate_resolved = true;
 						}
+					}
+					if (!$vat_rate_resolved) {
+						$vat_fallback_used = true;
+						$line_label = $line['item_information']['name'] ?? 'unknown';
+						dol_syslog("SuperPdpProvider::syncIncomingInvoices WARNING: could not resolve VAT rate for line '{$line_label}' in invoice PDP ID {$pdp_id}. Defaulting to 20%. Manual verification required.", LOG_WARNING);
 					}
 
 					$item_info = !empty($line['item_information']) ? $line['item_information'] : array();
@@ -633,7 +650,13 @@ class SuperPdpProvider extends BaseFacturelectProvider
 					$amount = floatval($allowance['amount'] ?? 0.0);
 					if ($amount > 0) {
 						$desc = !empty($allowance['reason']) ? "Remise: " . $allowance['reason'] : "Remise globale";
-						$vat_rate = isset($allowance['vat_rate']) ? floatval($allowance['vat_rate']) : 20.0;
+						if (isset($allowance['vat_rate'])) {
+							$vat_rate = floatval($allowance['vat_rate']);
+						} else {
+							$vat_rate = 20.0;
+							$vat_fallback_used = true;
+							dol_syslog("SuperPdpProvider::syncIncomingInvoices WARNING: could not resolve VAT rate for allowance '{$desc}' in invoice PDP ID {$pdp_id}. Defaulting to 20%.", LOG_WARNING);
+						}
 						$invoice_supplier->addline($desc, -$amount, $vat_rate, 0, 0, 1, 0, 0, 0, 0, 0, 0, 'HT', 0);
 					}
 				}
@@ -645,10 +668,22 @@ class SuperPdpProvider extends BaseFacturelectProvider
 					$amount = floatval($charge['amount'] ?? 0.0);
 					if ($amount > 0) {
 						$desc = !empty($charge['reason']) ? "Charge: " . $charge['reason'] : "Frais de port / Livraison";
-						$vat_rate = isset($charge['vat_rate']) ? floatval($charge['vat_rate']) : 20.0;
+						if (isset($charge['vat_rate'])) {
+							$vat_rate = floatval($charge['vat_rate']);
+						} else {
+							$vat_rate = 20.0;
+							$vat_fallback_used = true;
+							dol_syslog("SuperPdpProvider::syncIncomingInvoices WARNING: could not resolve VAT rate for charge '{$desc}' in invoice PDP ID {$pdp_id}. Defaulting to 20%.", LOG_WARNING);
+						}
 						$invoice_supplier->addline($desc, $amount, $vat_rate, 0, 0, 1, 0, 0, 0, 0, 0, 0, 'HT', 0);
 					}
 				}
+			}
+
+			// If any line used the 20% VAT fallback, append a visible warning to note_private
+			if ($vat_fallback_used) {
+				$warning = "[ATTENTION] Taux TVA non résolu sur au moins une ligne — vérification manuelle requise (taux par défaut 20% appliqué).";
+				$invoice_supplier->setValueFrom('note_private', trim($invoice_supplier->note_private . "\n" . $warning));
 			}
 
 			// Store PDP Technical ID and transmission date in Invoice Extrafields
