@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.7.0-alpha.1] - 2026-06-28
+
+### ✨ Nouvelles Fonctionnalités
+- feat: add "Tiers sans SIREN" page with inline SIREN lookup modal (3693ad8) par benjaminmarchand
+
 ## [1.6.0-alpha.1] - 2026-06-28
 
 ### ✨ Nouvelles Fonctionnalités
