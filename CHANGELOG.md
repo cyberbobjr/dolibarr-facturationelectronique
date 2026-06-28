@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.5.0-alpha.4] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: use invoice currency from multicurrency_code instead of hardcoded EUR (#19) (a8208ad) par benjaminmarchand
+
 ## [1.5.0-alpha.3] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
