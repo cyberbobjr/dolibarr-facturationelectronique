@@ -46,7 +46,7 @@ class modFacturationElectronique extends DolibarrModules
 		$this->description = "Module de facturation electronique B2B via SuperPDP (Factur-X, UBL, CII)";
 		$this->descriptionlong = "Conformite facturation B2B francaise. Liaison tiers a l'annuaire national, conversion en Factur-X et transmission securisee de factures clients, et recuperation automatique de factures d'achat.";
 
-		$this->version = '1.4.0-alpha.8';
+		$this->version = '1.5.0-alpha.1';
 
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'fa-file-invoice-dollar';

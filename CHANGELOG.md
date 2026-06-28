@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.5.0-alpha.1] - 2026-06-28
+
+### ✨ Nouvelles Fonctionnalités
+- feat: inject BG-16 payment_means into EN16931 payload (#17) (150d2ac) par benjaminmarchand
+
 ## [1.4.0-alpha.8] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
