@@ -913,6 +913,16 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$line_count++;
 		}
 
+		// BR-16: an invoice SHALL have at least one invoice line (BG-25).
+		// If every Dolibarr line was negative it went into document_level_allowances
+		// and $lines is empty — the payload would be rejected by the PDP.
+		if (empty($lines)) {
+			$this->error = "Impossible de transmettre cette facture : elle ne contient aucune ligne positive (règle BR-16 EN16931). "
+				. "Les remises et déductions globales ne peuvent pas constituer l'intégralité d'une facture électronique. "
+				. "Ajoutez au moins une ligne de prestation ou de produit avec un montant HT positif.";
+			return false;
+		}
+
 		// Gather VAT breakdowns
 		$vat_breakdowns = array();
 		$vat_details = array();
