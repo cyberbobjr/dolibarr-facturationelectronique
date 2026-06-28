@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.5.0-alpha.3] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: map EN16931 VAT category codes dynamically (AE, K, G, Z, O, E) (#15) (9f90edf) par benjaminmarchand
+
 ## [1.5.0-alpha.2] - 2026-06-28
 
 ### 🔧 Maintenance & Refactoring
