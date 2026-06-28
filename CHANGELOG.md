@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.6] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: inject preceding_invoice_reference (BG-3) for credit notes — BR-55 (#16) (fae172d) par benjaminmarchand
+
 ## [1.4.0-alpha.5] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
