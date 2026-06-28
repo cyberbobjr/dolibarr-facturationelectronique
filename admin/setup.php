@@ -66,6 +66,23 @@ if ($action === 'update_superpdp') {
 	}
 }
 
+if ($action === 'update_payment_notes') {
+	$late_percent = GETPOST('payment_late_percent', 'alphanohtml');
+	$recovery_fees = GETPOST('payment_recovery_fees', 'alphanohtml');
+	$discount_percent = GETPOST('payment_discount_percent', 'alphanohtml');
+
+	$res1 = dolibarr_set_const($db, 'FACTURELECT_PAYMENT_LATE_PERCENT', $late_percent, 'chaine', 0, 'Late payment penalty rate', $conf->entity);
+	$res2 = dolibarr_set_const($db, 'FACTURELECT_PAYMENT_RECOVERY_FEES', $recovery_fees, 'chaine', 0, 'Recovery flat fee amount', $conf->entity);
+	$res3 = dolibarr_set_const($db, 'FACTURELECT_PAYMENT_DISCOUNT_PERCENT', $discount_percent, 'chaine', 0, 'Early payment discount rate', $conf->entity);
+
+	if ($res1 >= 0 && $res2 >= 0 && $res3 >= 0) {
+		setEventMessages($langs->trans("SetupSaved") . " (" . $langs->trans("FacturelectPaymentNotesSection") . ")", null, 'mesgs');
+	} else {
+		setEventMessages($langs->trans("ErrorFailedToSave"), null, 'errors');
+		$error++;
+	}
+}
+
 if ($action === 'activate_provider') {
 	$provider = GETPOST('provider', 'alpha');
 	if ($provider === 'superpdp') {
@@ -127,6 +144,13 @@ $prod_id = getDolGlobalString('FACTURATION_ELECTRONIQUE_PROD_CLIENT_ID');
 $prod_secret = getDolGlobalString('FACTURATION_ELECTRONIQUE_PROD_CLIENT_SECRET');
 
 $active_provider = getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp');
+
+$payment_late_percent = getDolGlobalString('FACTURELECT_PAYMENT_LATE_PERCENT');
+$payment_recovery_fees = getDolGlobalString('FACTURELECT_PAYMENT_RECOVERY_FEES');
+if (empty($payment_recovery_fees)) {
+	$payment_recovery_fees = '40';
+}
+$payment_discount_percent = getDolGlobalString('FACTURELECT_PAYMENT_DISCOUNT_PERCENT');
 
 // Layout headers
 llxHeader('', $langs->trans("FacturelectSetup"), '');
@@ -323,6 +347,40 @@ print '    </div>';
 print '  </div>'; // End search card
 
 print '</div>'; // End fe-grid
+
+// Payment legal notes configuration card
+print '<div class="fe-card" style="margin-top: 20px;">';
+print '  <h3 class="fe-card-title"><span class="fa fa-file-contract"></span> ' . $langs->trans("FacturelectPaymentNotesSection") . '</h3>';
+print '  <p style="font-size:12px; color:#64748b; margin-bottom:16px;">' . $langs->trans("FacturelectPaymentNotesDesc") . '</p>';
+print '  <form action="' . $_SERVER['PHP_SELF'] . '" method="post">';
+print '    <input type="hidden" name="token" value="' . newToken() . '">';
+print '    <input type="hidden" name="action" value="update_payment_notes">';
+print '    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">';
+
+print '      <div class="fe-form-group">';
+print '        <label>' . $langs->trans("FacturelectPaymentLatePercent") . '</label>';
+print '        <input type="text" class="fe-input" name="payment_late_percent" value="' . dol_escape_htmltag($payment_late_percent) . '" placeholder="' . $langs->trans("FacturelectPaymentLatePercentPlaceholder") . '">';
+print '        <small style="color:#94a3b8;">' . $langs->trans("FacturelectPaymentLatePercentHelp") . '</small>';
+print '      </div>';
+
+print '      <div class="fe-form-group">';
+print '        <label>' . $langs->trans("FacturelectPaymentRecoveryFees") . '</label>';
+print '        <input type="text" class="fe-input" name="payment_recovery_fees" value="' . dol_escape_htmltag($payment_recovery_fees) . '" placeholder="40">';
+print '        <small style="color:#94a3b8;">' . $langs->trans("FacturelectPaymentRecoveryFeesHelp") . '</small>';
+print '      </div>';
+
+print '      <div class="fe-form-group">';
+print '        <label>' . $langs->trans("FacturelectPaymentDiscountPercent") . '</label>';
+print '        <input type="text" class="fe-input" name="payment_discount_percent" value="' . dol_escape_htmltag($payment_discount_percent) . '" placeholder="' . $langs->trans("FacturelectPaymentDiscountPercentPlaceholder") . '">';
+print '        <small style="color:#94a3b8;">' . $langs->trans("FacturelectPaymentDiscountPercentHelp") . '</small>';
+print '      </div>';
+
+print '    </div>';
+print '    <div style="margin-top:16px;">';
+print '      <button type="submit" class="fe-btn fe-btn-primary"><span class="fa fa-save"></span> ' . $langs->trans("Save") . '</button>';
+print '    </div>';
+print '  </form>';
+print '</div>';
 
 print '</div>'; // End fe-container
 

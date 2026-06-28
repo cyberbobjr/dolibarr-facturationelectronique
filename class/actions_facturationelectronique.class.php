@@ -976,20 +976,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 				'specification_identifier' => 'urn:cen.eu:en16931:2017',
 				'business_process_type' => 'B1'
 			),
-			'notes' => array(
-				array(
-					'note' => 'Indemnite forfaitaire pour frais de recouvrement de 40 euros en cas de retard de paiement.',
-					'subject_code' => 'PMT'
-				),
-				array(
-					'note' => 'Penalites de retard applicables en cas de non-paiement a l\'echeance au taux de 10% par an.',
-					'subject_code' => 'PMD'
-				),
-				array(
-					'note' => 'Pas d\'escompte consenti pour paiement anticipe.',
-					'subject_code' => 'AAB'
-				)
-			),
+			'notes' => $this->buildPaymentNotes($object),
 			'seller' => array(
 				'name' => $mysoc->name,
 				'postal_address' => array(
@@ -1069,6 +1056,61 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		return $en_invoice;
+	}
+
+	/**
+	 * Build the legal payment notes array for an EN16931 invoice payload.
+	 * Values are read from module-specific constants (FACTURELECT_PAYMENT_*)
+	 * with a fallback to empty / sensible French legal defaults.
+	 *
+	 * @param   Facture $object     The invoice object
+	 * @return  array               Array of note entries for the EN16931 payload
+	 */
+	private function buildPaymentNotes($object)
+	{
+		$late_rate = getDolGlobalString('FACTURELECT_PAYMENT_LATE_PERCENT');
+		if (empty($late_rate)) {
+			$late_rate = "3 fois le taux d'intérêt légal";
+		}
+
+		$recovery = getDolGlobalString('FACTURELECT_PAYMENT_RECOVERY_FEES');
+		if (empty($recovery)) {
+			$recovery = '40';
+		}
+
+		$discount_pct = getDolGlobalString('FACTURELECT_PAYMENT_DISCOUNT_PERCENT');
+
+		$notes = array(
+			array(
+				'note' => "Indemnité forfaitaire pour frais de recouvrement de {$recovery} euros en cas de retard de paiement.",
+				'subject_code' => 'PMT'
+			),
+			array(
+				'note' => "Pénalités de retard applicables en cas de non-paiement à l'échéance au taux de {$late_rate} par an.",
+				'subject_code' => 'PMD'
+			),
+		);
+
+		if (!empty($discount_pct)) {
+			$notes[] = array(
+				'note' => "Escompte de {$discount_pct}% consenti pour paiement anticipé.",
+				'subject_code' => 'AAB'
+			);
+		} else {
+			$notes[] = array(
+				'note' => "Pas d'escompte consenti pour paiement anticipé.",
+				'subject_code' => 'AAB'
+			);
+		}
+
+		if (!empty($object->note_public)) {
+			$notes[] = array(
+				'note' => strip_tags($object->note_public),
+				'subject_code' => 'ZZZ'
+			);
+		}
+
+		return $notes;
 	}
 
 	/**
