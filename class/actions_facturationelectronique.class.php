@@ -996,12 +996,23 @@ class ActionsFacturationelectronique extends CommonHookActions
 			return false;
 		}
 
+		// Resolve invoice currency — use multicurrency_code when the Multicurrency module is active.
+		$currency_code = !empty($object->multicurrency_code) ? strtoupper($object->multicurrency_code) : 'EUR';
+		$is_multicurrency = ($currency_code !== 'EUR');
+
+		// For multicurrency invoices use the amounts expressed in the invoice currency,
+		// not the EUR-converted amounts stored in total_ht/total_tva/total_ttc.
+		$inv_total_ht  = $is_multicurrency ? floatval($object->multicurrency_total_ht)  : floatval($object->total_ht);
+		$inv_total_tva = $is_multicurrency ? floatval($object->multicurrency_total_tva) : floatval($object->total_tva);
+		$inv_total_ttc = $is_multicurrency ? floatval($object->multicurrency_total_ttc) : floatval($object->total_ttc);
+		$inv_remains   = round($inv_total_ttc - $total_paid, 2);
+
 		// Build final payload matching EN16931 exactly
 		$en_invoice = array(
 			'number' => $object->ref,
 			'issue_date' => dol_print_date($object->date, '%Y-%m-%d'),
 			'type_code' => $type_code,
-			'currency_code' => 'EUR',
+			'currency_code' => $currency_code,
 			'process_control' => array(
 				'specification_identifier' => 'urn:cen.eu:en16931:2017',
 				'business_process_type' => 'B1'
@@ -1058,14 +1069,14 @@ class ActionsFacturationelectronique extends CommonHookActions
 				'sum_allowances_amount' => sprintf("%.2f", $sum_allowances_ht),
 				'sum_charges_amount' => '0.00',
 				// BT-109: net total after allowances = BT-106 - BT-107
-				'total_without_vat' => sprintf("%.2f", floatval($object->total_ht)),
-				'total_with_vat' => sprintf("%.2f", floatval($object->total_ttc)),
+				'total_without_vat' => sprintf("%.2f", $inv_total_ht),
+				'total_with_vat' => sprintf("%.2f", $inv_total_ttc),
 				'paid_amount' => sprintf("%.2f", $total_paid),
-				'amount_due_for_payment' => sprintf("%.2f", $remains_to_pay),
+				'amount_due_for_payment' => sprintf("%.2f", $inv_remains),
 				'rounding_amount' => '0.00',
 				'total_vat_amount' => array(
-					'currency_code' => 'EUR',
-					'value' => sprintf("%.2f", floatval($object->total_tva))
+					'currency_code' => $currency_code,
+					'value' => sprintf("%.2f", $inv_total_tva)
 				)
 			),
 			'vat_break_down' => $vat_breakdowns,
