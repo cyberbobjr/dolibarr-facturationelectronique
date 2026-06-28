@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.7] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: log and flag silent 20% VAT fallback on incoming invoice import (#22) (a316dae) par benjaminmarchand
+
 ## [1.4.0-alpha.6] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
