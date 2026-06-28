@@ -877,6 +877,18 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$has_ae_lines = false;
 
 		foreach ($object->lines as $line) {
+			// Skip decorative lines added by external modules (subtotal titles, section
+			// headers, subtotal aggregation lines…). Any non-zero special_code marks a
+			// line as non-commercial — confirmed by Dolibarr core card.php:1629.
+			if (!empty($line->special_code)) {
+				continue;
+			}
+			// Skip informational text lines with no financial value (product_type >= 9
+			// and zero amount). These are pure comment/free-text lines, not invoice items.
+			if ((int) $line->product_type >= 9 && floatval($line->total_ht) == 0 && floatval($line->total_tva) == 0) {
+				continue;
+			}
+
 			$qty = !empty($line->qty) ? floatval($line->qty) : 1.0;
 			$total_ht = floatval($line->total_ht);
 			$line_vat_rate = floatval($line->tva_tx);
@@ -935,6 +947,12 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$vat_details = array();
 		if (!empty($object->lines)) {
 			foreach ($object->lines as $line) {
+				if (!empty($line->special_code)) {
+					continue;
+				}
+				if ((int) $line->product_type >= 9 && floatval($line->total_ht) == 0 && floatval($line->total_tva) == 0) {
+					continue;
+				}
 				$rate = sprintf("%.1f", floatval($line->tva_tx));
 				$cat_code = $this->resolveVatCategoryCode(floatval($line->tva_tx), (int) ($line->info_bits ?? 0), $line->vat_src_code ?? '');
 				$bucket = $rate . '#' . $cat_code;
