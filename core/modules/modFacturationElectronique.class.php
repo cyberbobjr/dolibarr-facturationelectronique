@@ -174,7 +174,25 @@ class modFacturationElectronique extends DolibarrModules
 		);
 		$r++;
 
-		// 4. Submenu Configuration
+		// 4. Submenu Tiers sans SIREN (SIREN feature only)
+		$this->menu[$r] = array(
+			'fk_menu' => 'fk_mainmenu=facturelect',
+			'mainmenu' => 'facturelect',
+			'leftmenu' => 'tiers_sans_siren',
+			'type' => 'left',
+			'titre' => 'Tiers sans SIREN',
+			'prefix' => img_picto('', 'company', 'class="paddingright pictofixedwidth"'),
+			'url' => '/custom/facturationelectronique/tiers_sans_siren.php?mainmenu=facturelect&leftmenu=tiers_sans_siren',
+			'langs' => 'facturation_electronique@facturationelectronique',
+			'position' => 115,
+			'enabled' => 'isModEnabled("facturationelectronique") && getDolGlobalInt("FACTURELECT_FEATURE_SIREN", 1)',
+			'perms' => '$user->rights->facturation_electronique->lire',
+			'target' => '',
+			'user' => 0,
+		);
+		$r++;
+
+		// 5. Submenu Configuration
 		$this->menu[$r] = array(
 			'fk_menu' => 'fk_mainmenu=facturelect',
 			'mainmenu' => 'facturelect',
@@ -192,7 +210,7 @@ class modFacturationElectronique extends DolibarrModules
 		);
 		$r++;
 
-		// 5. Submenu Journal d'audit
+		// 6. Submenu Journal d'audit
 		$this->menu[$r] = array(
 			'fk_menu' => 'fk_mainmenu=facturelect',
 			'mainmenu' => 'facturelect',
