@@ -1065,6 +1065,25 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$en_invoice['purchase_order_reference'] = $object->ref_client;
 		}
 
+		// BR-55: a Credit Note (type_code 381) SHALL include a preceding invoice reference (BG-3).
+		// Dolibarr stores the source invoice ID in fk_facture_source on type=2 objects.
+		if ($object->type == 2) {
+			if (!empty($object->fk_facture_source)) {
+				require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
+				$source_invoice = new Facture($this->db);
+				if ($source_invoice->fetch($object->fk_facture_source) > 0) {
+					$en_invoice['preceding_invoice_reference'] = array(
+						array(
+							'preceding_invoice_reference' => $source_invoice->ref,
+							'preceding_invoice_issue_date' => dol_print_date($source_invoice->date, '%Y-%m-%d')
+						)
+					);
+				}
+			} else {
+				dol_syslog('buildEnInvoiceJson: credit note ' . $object->ref . ' has no fk_facture_source — BR-55 preceding_invoice_reference will be absent', LOG_WARNING);
+			}
+		}
+
 		return $en_invoice;
 	}
 
