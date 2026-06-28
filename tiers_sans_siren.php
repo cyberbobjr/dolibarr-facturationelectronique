@@ -74,7 +74,9 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter', 
 }
 
 // Build SQL
-$sql_where = " WHERE (s.siren IS NULL OR s.siren = '') AND (s.idprof1 IS NULL OR s.idprof1 = '')";
+// NB: Dolibarr 20+ replaced the legacy idprof1 column with a native `siren` column on llx_societe.
+// Raw SQL must target s.siren only (s.idprof1 no longer exists). See AGENTS.md #13.
+$sql_where = " WHERE (s.siren IS NULL OR s.siren = '')";
 $sql_where .= " AND (s.client > 0 OR s.fournisseur > 0)";
 $sql_where .= " AND s.entity = " . ((int) $conf->entity);
 $sql_where .= " AND s.status = 1";
@@ -98,7 +100,7 @@ if ($res_count) {
 }
 
 // Fetch rows
-$sql = "SELECT s.rowid, s.nom, s.zip, s.town, s.country_code, s.client, s.fournisseur, s.code_client, s.code_fournisseur";
+$sql = "SELECT s.rowid, s.nom, s.zip, s.town, s.client, s.fournisseur, s.code_client, s.code_fournisseur";
 $sql .= " FROM " . MAIN_DB_PREFIX . "societe s";
 $sql .= $sql_where;
 $sql .= $db->order($sortfield, $sortorder);
