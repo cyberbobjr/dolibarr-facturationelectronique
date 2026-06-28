@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.8] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: remove fake FR00000000000 VAT fallback — inject conditionally (#18) (0c4cc8e) par benjaminmarchand
+
 ## [1.4.0-alpha.7] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
