@@ -1080,6 +1080,9 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$en_invoice['purchase_order_reference'] = $object->ref_client;
 		}
 
+		// BR-49/BR-50: invoice SHALL have at least one Payment Instructions block (BG-16 / BT-81)
+		$en_invoice['payment_means'] = array($this->buildPaymentMeans($object, $mysoc));
+
 		// BR-55: a Credit Note (type_code 381) SHALL include a preceding invoice reference (BG-3).
 		// Dolibarr stores the source invoice ID in fk_facture_source on type=2 objects.
 		if ($object->type == 2) {
@@ -1100,6 +1103,68 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		return $en_invoice;
+	}
+
+	/**
+	 * Map a Dolibarr payment method code to an UNCL4461 code for EN16931 BT-81.
+	 *
+	 * @param  string $dolibarr_code  e.g. 'VIR', 'PRE', 'CHE', 'CB', 'LIQ'
+	 * @return string                 UNCL4461 code ('1' = unspecified as fallback)
+	 */
+	private function mapPaymentMeansCode($dolibarr_code)
+	{
+		$map = array(
+			'VIR' => '30', // SEPA Credit Transfer
+			'PRE' => '31', // SEPA Direct Debit
+			'LIQ' => '10', // Cash
+			'CHE' => '20', // Cheque
+			'CB'  => '48', // Card
+			'TIP' => '31', // TIP → direct debit
+			'VAD' => '48', // Remote card payment
+		);
+		return isset($map[$dolibarr_code]) ? $map[$dolibarr_code] : '1';
+	}
+
+	/**
+	 * Build the BG-16 payment_means block for an EN16931 payload.
+	 * Queries the company's default billing bank account for IBAN/BIC when
+	 * the payment method is a wire transfer or direct debit.
+	 *
+	 * @param  Facture $object   The invoice object
+	 * @param  Societe $mysoc    The company object
+	 * @return array             payment_means array (wrapped in outer array by caller)
+	 */
+	private function buildPaymentMeans($object, $mysoc)
+	{
+		global $conf;
+
+		$code = $this->mapPaymentMeansCode($object->mode_reglement_code);
+		$means = array('payment_means_type_code' => $code);
+
+		// Include IBAN/BIC only for wire transfer (30) or direct debit (31)
+		if (in_array($code, array('30', '31'))) {
+			$sql = 'SELECT iban_prefix, bic FROM ' . MAIN_DB_PREFIX . 'bank_account'
+				. ' WHERE entity = ' . (int) $conf->entity
+				. ' AND clos = 0'
+				. ' ORDER BY prifac DESC, rowid ASC LIMIT 1';
+			$resql = $this->db->query($sql);
+			if ($resql && $this->db->num_rows($resql) > 0) {
+				$row = $this->db->fetch_object($resql);
+				$iban = preg_replace('/\s+/', '', $row->iban_prefix ?? '');
+				$bic  = preg_replace('/\s+/', '', $row->bic ?? '');
+				if (!empty($iban)) {
+					$means['payment_account_identifier'] = strtoupper($iban);
+					$means['payment_account_name'] = $mysoc->name;
+					if (!empty($bic)) {
+						$means['payment_service_provider_identifier'] = strtoupper($bic);
+					}
+				}
+			} else {
+				dol_syslog('buildPaymentMeans: no active bank account found for entity ' . $conf->entity . ' — IBAN will be absent from BG-16', LOG_WARNING);
+			}
+		}
+
+		return $means;
 	}
 
 	/**
