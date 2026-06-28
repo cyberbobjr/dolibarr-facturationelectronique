@@ -1007,6 +1007,24 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$inv_total_ttc = $is_multicurrency ? floatval($object->multicurrency_total_ttc) : floatval($object->total_ttc);
 		$inv_remains   = round($inv_total_ttc - $total_paid, 2);
 
+		// Seller address is legally mandatory (art. 242 nonies A CGI). Block if incomplete.
+		$missing_seller = array();
+		if (empty($mysoc->address)) {
+			$missing_seller[] = 'adresse';
+		}
+		if (empty($mysoc->zip)) {
+			$missing_seller[] = 'code postal';
+		}
+		if (empty($mysoc->town)) {
+			$missing_seller[] = 'ville';
+		}
+		if (!empty($missing_seller)) {
+			$this->error = "Les champs suivants de votre société sont manquants et obligatoires pour la transmission électronique : "
+				. implode(', ', $missing_seller)
+				. ". Veuillez les compléter dans Configuration > Société > Coordonnées.";
+			return false;
+		}
+
 		// Build final payload matching EN16931 exactly
 		$en_invoice = array(
 			'number' => $object->ref,
@@ -1021,11 +1039,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 			'seller' => array(
 				'name' => $mysoc->name,
 				'postal_address' => array(
-					'address_line1' => !empty($mysoc->address) ? $mysoc->address : 'Adresse',
-					'post_code' => !empty($mysoc->zip) ? $mysoc->zip : '00000',
-					'city' => !empty($mysoc->town) ? $mysoc->town : 'Ville',
+					'address_line1' => $mysoc->address,
+					'post_code' => $mysoc->zip,
+					'city' => $mysoc->town,
 					'country_code' => !empty($mysoc->country_code) ? strtoupper($mysoc->country_code) : 'FR',
-					'country_subdivision' => 'France'
+					'country_subdivision' => !empty($mysoc->country) ? $mysoc->country : ''
 				),
 				'legal_registration_identifier' => array(
 					'value' => $clean_seller_siren,
@@ -1042,13 +1060,13 @@ class ActionsFacturationelectronique extends CommonHookActions
 			),
 			'buyer' => array(
 				'name' => $object->thirdparty->name,
-				'postal_address' => array(
-					'address_line1' => !empty($object->thirdparty->address) ? $object->thirdparty->address : 'Adresse Client',
-					'post_code' => !empty($object->thirdparty->zip) ? $object->thirdparty->zip : '00000',
-					'city' => !empty($object->thirdparty->town) ? $object->thirdparty->town : 'Ville Client',
+				'postal_address' => array_filter(array(
+					'address_line1' => !empty($object->thirdparty->address) ? $object->thirdparty->address : null,
+					'post_code' => !empty($object->thirdparty->zip) ? $object->thirdparty->zip : null,
+					'city' => !empty($object->thirdparty->town) ? $object->thirdparty->town : null,
 					'country_code' => !empty($object->thirdparty->country_code) ? strtoupper($object->thirdparty->country_code) : 'FR',
-					'country_subdivision' => !empty($object->thirdparty->state) ? $object->thirdparty->state : 'France'
-				),
+					'country_subdivision' => !empty($object->thirdparty->state) ? $object->thirdparty->state : null,
+				)),
 				'legal_registration_identifier' => array(
 					'value' => $legal_buyer_siren,
 					'scheme' => '0225'
