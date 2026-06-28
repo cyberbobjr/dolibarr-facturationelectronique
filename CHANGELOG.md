@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.2] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: map EN16931 VAT category code dynamically instead of hardcoding 'S' (372446b) par benjaminmarchand
+
 ## [1.4.0-alpha.1] - 2026-06-26
 
 ### ✨ Nouvelles Fonctionnalités
