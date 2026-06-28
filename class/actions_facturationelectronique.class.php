@@ -1059,39 +1059,30 @@ class ActionsFacturationelectronique extends CommonHookActions
 	}
 
 	/**
-	 * Build the legal payment notes array for an EN16931 invoice payload.
-	 *
-	 * Standard French B2B legal mentions (PMT/PMD/AAB) are fixed by law and
-	 * included unconditionally. Any free-text mention configured in the native
-	 * Dolibarr invoice module ("Mention complémentaire", INVOICE_FREE_TEXT) is
-	 * appended as a ZZZ note so administrators only need one place to configure it.
+	 * Build the notes array for an EN16931 invoice payload from Dolibarr native fields.
+	 * INVOICE_FREE_TEXT (admin/invoice.php) carries global mentions (penalties, discount…).
+	 * note_public carries per-invoice free text.
 	 *
 	 * @param   Facture $object     The invoice object
 	 * @return  array               Array of note entries for the EN16931 payload
 	 */
 	private function buildPaymentNotes($object)
 	{
-		$notes = array(
-			array(
-				'note' => "Indemnité forfaitaire pour frais de recouvrement de 40 euros en cas de retard de paiement.",
-				'subject_code' => 'PMT'
-			),
-			array(
-				'note' => "Pénalités de retard applicables en cas de non-paiement à l'échéance au taux légal en vigueur par an.",
-				'subject_code' => 'PMD'
-			),
-			array(
-				'note' => "Pas d'escompte consenti pour paiement anticipé.",
-				'subject_code' => 'AAB'
-			),
-		);
+		$notes = array();
 
-		// Append the native Dolibarr invoice free-text mention if configured
-		// (admin/invoice.php → "Mention complémentaire sur les factures")
+		// Global invoice mention configured in admin/invoice.php ("Mention complémentaire")
 		$free_text = getDolGlobalString('INVOICE_FREE_TEXT');
 		if (!empty($free_text)) {
 			$notes[] = array(
 				'note' => strip_tags($free_text),
+				'subject_code' => 'ZZZ'
+			);
+		}
+
+		// Per-invoice public note
+		if (!empty($object->note_public)) {
+			$notes[] = array(
+				'note' => strip_tags($object->note_public),
 				'subject_code' => 'ZZZ'
 			);
 		}
