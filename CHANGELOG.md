@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.7.0-alpha.2] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: remove non-existent idprof1/country_code columns from SIREN list query (3e85475) par benjaminmarchand
+
 ## [1.7.0-alpha.1] - 2026-06-28
 
 ### ✨ Nouvelles Fonctionnalités
