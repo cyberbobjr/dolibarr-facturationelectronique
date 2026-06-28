@@ -1127,40 +1127,38 @@ class ActionsFacturationelectronique extends CommonHookActions
 
 	/**
 	 * Build the BG-16 payment_means block for an EN16931 payload.
-	 * Queries the company's default billing bank account for IBAN/BIC when
-	 * the payment method is a wire transfer or direct debit.
+	 * Follows the same bank account resolution as Dolibarr's pdf_crabe:
+	 *   1. $object->fk_account (bank account linked to the invoice)
+	 *   2. FACTURE_RIB_NUMBER  (default billing account in admin/invoice.php)
 	 *
 	 * @param  Facture $object   The invoice object
 	 * @param  Societe $mysoc    The company object
-	 * @return array             payment_means array (wrapped in outer array by caller)
+	 * @return array             payment_means entry (caller wraps it in an outer array)
 	 */
 	private function buildPaymentMeans($object, $mysoc)
 	{
-		global $conf;
-
 		$code = $this->mapPaymentMeansCode($object->mode_reglement_code);
 		$means = array('payment_means_type_code' => $code);
 
 		// Include IBAN/BIC only for wire transfer (30) or direct debit (31)
 		if (in_array($code, array('30', '31'))) {
-			$sql = 'SELECT iban_prefix, bic FROM ' . MAIN_DB_PREFIX . 'bank_account'
-				. ' WHERE entity = ' . (int) $conf->entity
-				. ' AND clos = 0'
-				. ' ORDER BY prifac DESC, rowid ASC LIMIT 1';
-			$resql = $this->db->query($sql);
-			if ($resql && $this->db->num_rows($resql) > 0) {
-				$row = $this->db->fetch_object($resql);
-				$iban = preg_replace('/\s+/', '', $row->iban_prefix ?? '');
-				$bic  = preg_replace('/\s+/', '', $row->bic ?? '');
-				if (!empty($iban)) {
-					$means['payment_account_identifier'] = strtoupper($iban);
-					$means['payment_account_name'] = $mysoc->name;
-					if (!empty($bic)) {
-						$means['payment_service_provider_identifier'] = strtoupper($bic);
+			$bankid = !empty($object->fk_account) ? $object->fk_account : getDolGlobalInt('FACTURE_RIB_NUMBER');
+			if ($bankid > 0) {
+				require_once DOL_DOCUMENT_ROOT.'/compta/bank/class/account.class.php';
+				$account = new Account($this->db);
+				if ($account->fetch($bankid) > 0) {
+					$iban = preg_replace('/\s+/', '', $account->iban ?: $account->iban_prefix);
+					$bic  = preg_replace('/\s+/', '', $account->bic ?? '');
+					if (!empty($iban)) {
+						$means['payment_account_identifier'] = strtoupper($iban);
+						$means['payment_account_name'] = $mysoc->name;
+						if (!empty($bic)) {
+							$means['payment_service_provider_identifier'] = strtoupper($bic);
+						}
 					}
 				}
 			} else {
-				dol_syslog('buildPaymentMeans: no active bank account found for entity ' . $conf->entity . ' — IBAN will be absent from BG-16', LOG_WARNING);
+				dol_syslog('buildPaymentMeans: no bank account configured (fk_account or FACTURE_RIB_NUMBER) — IBAN will be absent from BG-16', LOG_WARNING);
 			}
 		}
 
