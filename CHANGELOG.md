@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.5.0-alpha.5] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: map Dolibarr unit codes to UN/ECE Rec.20 for BT-130 instead of hardcoded C62 (#23) (a468917) par benjaminmarchand
+
 ## [1.5.0-alpha.4] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
