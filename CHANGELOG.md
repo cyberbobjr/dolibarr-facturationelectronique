@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.5] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: block transmission when all lines are negative — BR-16 violation (#20) (3eff312) par benjaminmarchand
+
 ## [1.4.0-alpha.4] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
