@@ -89,15 +89,5 @@ FacturelectLogUser=Utilisateur
 FacturelectNoLogs=Aucune transaction API enregistrée.
 FacturelectViewDetails=Voir les détails
 FacturelectLogShowPayloads=Afficher les payloads de requête et réponse
-FacturelectPaymentNotesSection=Mentions légales de paiement (Factur-X)
-FacturelectPaymentNotesDesc=Ces mentions apparaissent dans chaque facture transmise. Laissez vide pour utiliser les valeurs légales par défaut.
-FacturelectPaymentLatePercent=Taux de pénalités de retard
-FacturelectPaymentLatePercentPlaceholder=ex. 3 fois le taux d'intérêt légal
-FacturelectPaymentLatePercentHelp=Taux appliqué en cas de non-paiement à l'échéance (ex. "3 fois le taux d'intérêt légal" ou "12%")
-FacturelectPaymentRecoveryFees=Indemnité forfaitaire de recouvrement (€)
-FacturelectPaymentRecoveryFeesHelp=Montant en euros (art. L441-10 C.com., valeur légale : 40)
-FacturelectPaymentDiscountPercent=Escompte pour paiement anticipé (%)
-FacturelectPaymentDiscountPercentPlaceholder=Laisser vide si pas d'escompte
-FacturelectPaymentDiscountPercentHelp=Si vide, la mention "Pas d'escompte consenti" sera incluse dans la facture
 
 

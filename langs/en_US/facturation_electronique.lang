@@ -89,15 +89,5 @@ FacturelectLogUser=User
 FacturelectNoLogs=No API transaction logged.
 FacturelectViewDetails=View details
 FacturelectLogShowPayloads=Show request and response payloads
-FacturelectPaymentNotesSection=Legal Payment Mentions (Factur-X)
-FacturelectPaymentNotesDesc=These mentions appear in every transmitted invoice. Leave blank to use legal default values.
-FacturelectPaymentLatePercent=Late payment penalty rate
-FacturelectPaymentLatePercentPlaceholder=e.g. 3 times the legal interest rate
-FacturelectPaymentLatePercentHelp=Rate applied for non-payment at due date (e.g. "3 times the legal interest rate" or "12%")
-FacturelectPaymentRecoveryFees=Recovery flat fee (€)
-FacturelectPaymentRecoveryFeesHelp=Amount in euros (art. L441-10 C.com., legal value: 40)
-FacturelectPaymentDiscountPercent=Early payment discount (%)
-FacturelectPaymentDiscountPercentPlaceholder=Leave blank if no discount
-FacturelectPaymentDiscountPercentHelp=If blank, the mention "No discount granted" will be included in the invoice
 
 
