@@ -6,6 +6,15 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.4] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: remove hardcoded PMT/PMD/AAB notes — INVOICE_FREE_TEXT covers them (b4bfd2d) par benjaminmarchand
+- fix: replace hardcoded payment legal notes with configurable dynamic values (cf10185) par benjaminmarchand
+
+### 🔧 Maintenance & Refactoring
+- refactor: read INVOICE_FREE_TEXT instead of duplicating payment note config (25b36d6) par benjaminmarchand
+
 ## [1.4.0-alpha.3] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
