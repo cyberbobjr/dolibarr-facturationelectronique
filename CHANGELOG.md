@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.5.0-alpha.2] - 2026-06-28
+
+### 🔧 Maintenance & Refactoring
+- refactor: replace raw SQL in buildPaymentMeans with native Account class (11d3b61) par benjaminmarchand
+
 ## [1.5.0-alpha.1] - 2026-06-28
 
 ### ✨ Nouvelles Fonctionnalités
