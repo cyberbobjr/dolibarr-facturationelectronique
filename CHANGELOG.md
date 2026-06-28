@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.6.0-alpha.1] - 2026-06-28
+
+### ✨ Nouvelles Fonctionnalités
+- feat: add independent feature flags for e-invoicing and SIREN management (a7eb0da) par benjaminmarchand
+
 ## [1.5.0-alpha.7] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
