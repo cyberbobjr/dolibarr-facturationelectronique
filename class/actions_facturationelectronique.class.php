@@ -874,19 +874,25 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$line_count = 1;
 		$sum_positive_lines_ht = 0.0;
 		$sum_allowances_ht = 0.0;
+		$has_ae_lines = false;
 
 		foreach ($object->lines as $line) {
 			$qty = !empty($line->qty) ? floatval($line->qty) : 1.0;
 			$total_ht = floatval($line->total_ht);
+			$line_vat_rate = floatval($line->tva_tx);
+			$line_vat_code = $this->resolveVatCategoryCode($line_vat_rate, (int) ($line->info_bits ?? 0), $line->vat_src_code ?? '');
+
+			if ($line_vat_code === 'AE') {
+				$has_ae_lines = true;
+			}
 
 			if ($total_ht < 0) {
 				$sum_allowances_ht += abs($total_ht);
-				$allowance_vat_rate = floatval($line->tva_tx);
 				$document_level_allowances[] = array(
 					'amount' => sprintf("%.2f", abs($total_ht)),
 					'reason' => !empty($line->desc) ? strip_tags($line->desc) : 'Remise',
-					'vat_category_code' => $allowance_vat_rate > 0 ? 'S' : 'E',
-					'vat_rate' => sprintf("%.1f", $allowance_vat_rate)
+					'vat_category_code' => $line_vat_code,
+					'vat_rate' => sprintf("%.1f", $line_vat_rate)
 				);
 				continue;
 			}
@@ -903,8 +909,8 @@ class ActionsFacturationelectronique extends CommonHookActions
 					'item_net_price' => sprintf("%.2f", $net_price)
 				),
 				'vat_information' => array(
-					'invoiced_item_vat_category_code' => floatval($line->tva_tx) > 0 ? 'S' : 'E',
-					'invoiced_item_vat_rate' => sprintf("%.1f", floatval($line->tva_tx))
+					'invoiced_item_vat_category_code' => $line_vat_code,
+					'invoiced_item_vat_rate' => sprintf("%.1f", $line_vat_rate)
 				),
 				'item_information' => array(
 					'name' => !empty($line->desc) ? strip_tags($line->desc) : 'Ligne de facture'
@@ -923,29 +929,34 @@ class ActionsFacturationelectronique extends CommonHookActions
 			return false;
 		}
 
-		// Gather VAT breakdowns
+		// Gather VAT breakdowns grouped by (rate, category_code) — EN16931 BG-23.
+		// Lines at 0% with different legal regimes (AE, E, K…) go into separate buckets.
 		$vat_breakdowns = array();
 		$vat_details = array();
 		if (!empty($object->lines)) {
 			foreach ($object->lines as $line) {
 				$rate = sprintf("%.1f", floatval($line->tva_tx));
-				if (!isset($vat_details[$rate])) {
-					$vat_details[$rate] = array(
+				$cat_code = $this->resolveVatCategoryCode(floatval($line->tva_tx), (int) ($line->info_bits ?? 0), $line->vat_src_code ?? '');
+				$bucket = $rate . '#' . $cat_code;
+				if (!isset($vat_details[$bucket])) {
+					$vat_details[$bucket] = array(
+						'rate' => $rate,
+						'cat_code' => $cat_code,
 						'taxable_amount' => 0.0,
 						'tax_amount' => 0.0
 					);
 				}
-				$vat_details[$rate]['taxable_amount'] += floatval($line->total_ht);
-				$vat_details[$rate]['tax_amount'] += floatval($line->total_tva);
+				$vat_details[$bucket]['taxable_amount'] += floatval($line->total_ht);
+				$vat_details[$bucket]['tax_amount'] += floatval($line->total_tva);
 			}
 		}
 
-		foreach ($vat_details as $rate => $amounts) {
+		foreach ($vat_details as $amounts) {
 			$vat_breakdowns[] = array(
 				'vat_category_taxable_amount' => sprintf("%.2f", $amounts['taxable_amount']),
 				'vat_category_tax_amount' => sprintf("%.2f", $amounts['tax_amount']),
-				'vat_category_code' => floatval($rate) > 0 ? 'S' : 'E',
-				'vat_category_rate' => $rate
+				'vat_category_code' => $amounts['cat_code'],
+				'vat_category_rate' => $amounts['rate']
 			);
 		}
 
@@ -995,7 +1006,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 				'specification_identifier' => 'urn:cen.eu:en16931:2017',
 				'business_process_type' => 'B1'
 			),
-			'notes' => $this->buildPaymentNotes($object),
+			'notes' => $this->buildInvoiceNotes($object, $has_ae_lines),
 			'seller' => array(
 				'name' => $mysoc->name,
 				'postal_address' => array(
@@ -1166,6 +1177,29 @@ class ActionsFacturationelectronique extends CommonHookActions
 	}
 
 	/**
+	 * Build the full notes array for an EN16931 payload.
+	 * Merges free-text payment notes with any mandatory legal mentions
+	 * required by the resolved VAT category codes (e.g. AE → BR-AE-10).
+	 *
+	 * @param   Facture $object     The invoice object
+	 * @param   bool    $has_ae     True when at least one line carries VAT code AE
+	 * @return  array               Array of note entries for the EN16931 payload
+	 */
+	private function buildInvoiceNotes($object, $has_ae = false)
+	{
+		$notes = $this->buildPaymentNotes($object);
+
+		if ($has_ae) {
+			$notes[] = array(
+				'note' => 'Autoliquidation de la TVA - Article 283-2 du CGI',
+				'subject_code' => 'TAX'
+			);
+		}
+
+		return $notes;
+	}
+
+	/**
 	 * Build the notes array for an EN16931 invoice payload from Dolibarr native fields.
 	 * INVOICE_FREE_TEXT (admin/invoice.php) carries global mentions (penalties, discount…).
 	 * note_public carries per-invoice free text.
@@ -1195,6 +1229,37 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		return $notes;
+	}
+
+	/**
+	 * Map Dolibarr VAT fields to the correct EN16931 VAT category code (BT-151 / BT-95 / BT-118).
+	 *
+	 * Priority:
+	 *   1. vat_src_code from llx_c_tva (AE, K, G, Z, O, EX…)
+	 *   2. info_bits bitmask — bit 0 = not subject to VAT → O
+	 *   3. rate > 0 → S, rate = 0 → E (default exempt)
+	 *
+	 * @param  float  $vat_rate     Effective VAT rate (e.g. 20.0, 0.0)
+	 * @param  int    $info_bits    Dolibarr line info_bits bitmask
+	 * @param  string $vat_src_code Dolibarr VAT source code from llx_c_tva
+	 * @return string               EN16931 VAT category code
+	 */
+	private function resolveVatCategoryCode($vat_rate, $info_bits = 0, $vat_src_code = '')
+	{
+		if ($vat_rate > 0) {
+			return 'S';
+		}
+		if (!empty($vat_src_code)) {
+			$src = strtoupper(trim($vat_src_code));
+			$map = array('AE' => 'AE', 'K' => 'K', 'G' => 'G', 'Z' => 'Z', 'O' => 'O', 'EX' => 'E', 'E' => 'E');
+			if (isset($map[$src])) {
+				return $map[$src];
+			}
+		}
+		if ($info_bits & 1) {
+			return 'O';
+		}
+		return 'E';
 	}
 
 	/**
