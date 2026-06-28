@@ -976,6 +976,15 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$total_paid = $object->getSommePaiement();
 		$remains_to_pay = round(floatval($object->total_ttc) - $total_paid, 2);
 
+		// BR-S-02: seller MUST have a VAT identifier when any line is standard-rated (S).
+		// total_tva > 0 is the simplest proxy — avoids re-scanning all lines.
+		if (empty($mysoc->tva_intra) && floatval($object->total_tva) > 0) {
+			$this->error = "Votre entreprise n'a pas de numéro TVA intracommunautaire configuré "
+				. "(Paramètres → Société → Informations fiscales). "
+				. "La transmission est impossible pour une facture avec TVA au taux normal (règle BR-S-02 EN16931).";
+			return false;
+		}
+
 		// Build final payload matching EN16931 exactly
 		$en_invoice = array(
 			'number' => $object->ref,
@@ -1004,7 +1013,6 @@ class ActionsFacturationelectronique extends CommonHookActions
 				'identifiers' => array(
 					array('value' => $clean_seller_siren, 'scheme' => '0225')
 				),
-				'vat_identifier' => !empty($mysoc->tva_intra) ? $mysoc->tva_intra : 'FR00000000000',
 				'electronic_address' => array(
 					'value' => ($mode !== 'production' && $active_provider === 'superpdp') ? '315143296_7182' : $clean_seller_siren,
 					'scheme' => '0225'
@@ -1027,7 +1035,6 @@ class ActionsFacturationelectronique extends CommonHookActions
 				'identifiers' => array(
 					array('value' => $legal_buyer_siren, 'scheme' => '0225')
 				),
-				'vat_identifier' => !empty($object->thirdparty->tva_intra) ? $object->thirdparty->tva_intra : 'FR00000000000',
 				'electronic_address' => array(
 					'value' => $buyer_identifier,
 					'scheme' => $buyer_scheme
@@ -1053,6 +1060,14 @@ class ActionsFacturationelectronique extends CommonHookActions
 			'vat_break_down' => $vat_breakdowns,
 			'lines' => $lines
 		);
+
+		// vat_identifier is optional in EN16931 — only inject when actually set (never a fake value)
+		if (!empty($mysoc->tva_intra)) {
+			$en_invoice['seller']['vat_identifier'] = $mysoc->tva_intra;
+		}
+		if (!empty($object->thirdparty->tva_intra)) {
+			$en_invoice['buyer']['vat_identifier'] = $object->thirdparty->tva_intra;
+		}
 
 		if (!empty($document_level_allowances)) {
 			$en_invoice['document_level_allowances'] = $document_level_allowances;
