@@ -62,6 +62,6 @@ jobs:
           body_path: build/release_notes.md
           draft: false
           prerelease: true
-          files: build/module_facturationelectronique-${{ steps.increment.outputs.new_version }}.zip
+          files: build/module_facturationelectronique-${{ steps.increment.outputs.zip_version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

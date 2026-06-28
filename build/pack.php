@@ -25,8 +25,9 @@ if (preg_match('/\$this->version\s*=\s*[\'"]([^\'"]+)[\'"]/', $descriptorContent
 }
 echo "Resolved module version: " . $version . "\n";
 
-// Zip file name format
-$zipFileName = 'module_facturationelectronique-' . $version . '.zip';
+// Strip pre-release suffix (-alpha.N, -beta.N, etc.) — Dolibarr's installer regex only accepts digits and dots
+$zip_version = preg_replace('/-[a-zA-Z].*$/', '', $version);
+$zipFileName = 'module_facturationelectronique-' . $zip_version . '.zip';
 $zipFilePath = $buildDir . '/' . $zipFileName;
 
 // 2. Prepare build and staging directories

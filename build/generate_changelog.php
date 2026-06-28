@@ -257,5 +257,7 @@ echo "Successfully updated version to " . $newVersion . " in descriptor.\n";
 
 // Output version to environment variables if running in GitHub Actions
 if (getenv('GITHUB_OUTPUT')) {
+	$zipVersion = preg_replace('/-[a-zA-Z].*$/', '', $newVersion);
 	file_put_contents(getenv('GITHUB_OUTPUT'), "new_version=" . $newVersion . "\n", FILE_APPEND);
+	file_put_contents(getenv('GITHUB_OUTPUT'), "zip_version=" . $zipVersion . "\n", FILE_APPEND);
 }
