@@ -903,7 +903,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$lines[] = array(
 				'identifier' => (string) $line_count,
 				'invoiced_quantity' => sprintf("%.2f", $qty),
-				'invoiced_quantity_code' => 'C62',
+				'invoiced_quantity_code' => $this->resolveUnitCode($line->fk_unit ?? 0),
 				'net_amount' => sprintf("%.2f", $total_ht),
 				'price_details' => array(
 					'item_net_price' => sprintf("%.2f", $net_price)
@@ -1240,6 +1240,58 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		return $notes;
+	}
+
+	/**
+	 * Map a Dolibarr unit (llx_c_units.rowid) to a UN/ECE Rec. 20 unit code for BT-130.
+	 * Results are cached per unique fk_unit to avoid N SQL queries for N invoice lines.
+	 *
+	 * @param  int    $fk_unit  Dolibarr unit ID (0 or null = no unit)
+	 * @return string           UN/ECE Rec. 20 unit code (default 'C62' = piece)
+	 */
+	private function resolveUnitCode($fk_unit)
+	{
+		static $cache = array();
+
+		$fk_unit = (int) $fk_unit;
+		if ($fk_unit <= 0) {
+			return 'C62';
+		}
+		if (isset($cache[$fk_unit])) {
+			return $cache[$fk_unit];
+		}
+
+		$sql = 'SELECT code FROM ' . MAIN_DB_PREFIX . 'c_units WHERE rowid = ' . $fk_unit . ' LIMIT 1';
+		$res = $this->db->query($sql);
+		if (!$res || $this->db->num_rows($res) === 0) {
+			$cache[$fk_unit] = 'C62';
+			return 'C62';
+		}
+		$row = $this->db->fetch_object($res);
+		$dolibarr_code = strtolower(trim($row->code ?? ''));
+
+		$map = array(
+			'h'     => 'HUR', 'hr'    => 'HUR', 'heure' => 'HUR',
+			'j'     => 'DAY', 'day'   => 'DAY', 'jour'  => 'DAY',
+			'mois'  => 'MON', 'mon'   => 'MON',
+			'an'    => 'ANN', 'ann'   => 'ANN', 'year'  => 'ANN',
+			'kg'    => 'KGM', 'kgm'   => 'KGM',
+			'km'    => 'KMT',
+			'm'     => 'MTR',
+			'm2'    => 'MTK',
+			'm3'    => 'MTQ',
+			'l'     => 'LTR', 'lt'    => 'LTR',
+			'pc'    => 'C62', 'pce'   => 'C62', 'u'     => 'C62',
+		);
+
+		if (isset($map[$dolibarr_code])) {
+			$cache[$fk_unit] = $map[$dolibarr_code];
+		} else {
+			dol_syslog('resolveUnitCode: unknown Dolibarr unit code "' . $dolibarr_code . '" (fk_unit=' . $fk_unit . ') — defaulting to C62', LOG_WARNING);
+			$cache[$fk_unit] = 'C62';
+		}
+
+		return $cache[$fk_unit];
 	}
 
 	/**
