@@ -881,11 +881,12 @@ class ActionsFacturationelectronique extends CommonHookActions
 
 			if ($total_ht < 0) {
 				$sum_allowances_ht += abs($total_ht);
+				$allowance_vat_rate = floatval($line->tva_tx);
 				$document_level_allowances[] = array(
 					'amount' => sprintf("%.2f", abs($total_ht)),
 					'reason' => !empty($line->desc) ? strip_tags($line->desc) : 'Remise',
-					'vat_category_code' => 'S',
-					'vat_rate' => sprintf("%.1f", floatval($line->tva_tx))
+					'vat_category_code' => $allowance_vat_rate > 0 ? 'S' : 'E',
+					'vat_rate' => sprintf("%.1f", $allowance_vat_rate)
 				);
 				continue;
 			}
@@ -902,7 +903,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					'item_net_price' => sprintf("%.2f", $net_price)
 				),
 				'vat_information' => array(
-					'invoiced_item_vat_category_code' => 'S',
+					'invoiced_item_vat_category_code' => floatval($line->tva_tx) > 0 ? 'S' : 'E',
 					'invoiced_item_vat_rate' => sprintf("%.1f", floatval($line->tva_tx))
 				),
 				'item_information' => array(
@@ -933,7 +934,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$vat_breakdowns[] = array(
 				'vat_category_taxable_amount' => sprintf("%.2f", $amounts['taxable_amount']),
 				'vat_category_tax_amount' => sprintf("%.2f", $amounts['tax_amount']),
-				'vat_category_code' => 'S',
+				'vat_category_code' => floatval($rate) > 0 ? 'S' : 'E',
 				'vat_category_rate' => $rate
 			);
 		}
