@@ -1,0 +1,447 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e5]:
+      - text: 
+      - listitem [ref=e6]:
+        - generic [ref=e7]:
+          - link "" [ref=e8] [cursor=pointer]:
+            - /url: /index.php?mainmenu=home&leftmenu=home
+            - generic [ref=e10]: 
+          - link "Accueil" [ref=e11] [cursor=pointer]:
+            - /url: /index.php?mainmenu=home&leftmenu=home
+      - listitem [ref=e12]:
+        - generic [ref=e13]:
+          - link "" [ref=e14] [cursor=pointer]:
+            - /url: /societe/index.php?mainmenu=companies&leftmenu=
+            - generic [ref=e16]: 
+          - link "Tiers" [ref=e17] [cursor=pointer]:
+            - /url: /societe/index.php?mainmenu=companies&leftmenu=
+      - listitem [ref=e18]:
+        - generic [ref=e19]:
+          - link "" [ref=e20] [cursor=pointer]:
+            - /url: /product/index.php?mainmenu=products&leftmenu=
+            - generic [ref=e22]: 
+          - link "Produits | Services" [ref=e23] [cursor=pointer]:
+            - /url: /product/index.php?mainmenu=products&leftmenu=
+      - listitem [ref=e24]:
+        - generic [ref=e25]:
+          - link "" [ref=e26] [cursor=pointer]:
+            - /url: /comm/index.php?mainmenu=commercial&leftmenu=
+            - generic [ref=e28]: 
+          - link "Commerce" [ref=e29] [cursor=pointer]:
+            - /url: /comm/index.php?mainmenu=commercial&leftmenu=
+      - listitem [ref=e30]:
+        - generic [ref=e31]:
+          - link "" [ref=e32] [cursor=pointer]:
+            - /url: /compta/index.php?mainmenu=billing&leftmenu=
+            - generic [ref=e34]: 
+          - link "Facturation | Paiement" [ref=e35] [cursor=pointer]:
+            - /url: /compta/index.php?mainmenu=billing&leftmenu=
+      - listitem [ref=e36]:
+        - generic [ref=e37]:
+          - link "" [ref=e38] [cursor=pointer]:
+            - /url: /comm/action/index.php?idmenu=1&mainmenu=agenda&leftmenu=
+            - generic [ref=e40]: 
+          - link "Agenda" [ref=e41] [cursor=pointer]:
+            - /url: /comm/action/index.php?idmenu=1&mainmenu=agenda&leftmenu=
+      - listitem [ref=e42]:
+        - generic [ref=e43]:
+          - link "" [ref=e44] [cursor=pointer]:
+            - /url: /core/tools.php?mainmenu=tools&leftmenu=
+            - generic [ref=e46]: 
+          - link "Outils" [ref=e47] [cursor=pointer]:
+            - /url: /core/tools.php?mainmenu=tools&leftmenu=
+      - listitem [ref=e48]:
+        - generic [ref=e49]:
+          - link "" [ref=e50] [cursor=pointer]:
+            - /url: /custom/facturationelectronique/inbound_list.php?mainmenu=facturelect&leftmenu=inbound&idmenu=148
+            - generic [ref=e52]: 
+          - link "Facturation Électronique" [ref=e53] [cursor=pointer]:
+            - /url: /custom/facturationelectronique/inbound_list.php?mainmenu=facturelect&leftmenu=inbound&idmenu=148
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - generic "Générateur de Module et Application" [ref=e57]:
+          - link "" [ref=e58] [cursor=pointer]:
+            - /url: /modulebuilder/index.php?mainmenu=home&leftmenu=admintools
+            - generic [ref=e59]: 
+        - generic "Afficher page d'impression de la zone centrale" [ref=e61]:
+          - link "" [ref=e62] [cursor=pointer]:
+            - /url: /admin/invoice.php?mainmenu=home&token=eb6982284b9b77e644ca895977827501&actionlogin=login&loginfunction=loginfunction&tz=1&tz_string=Europe%2FParis&dst_observed=1&dst_first=2026-03-29T01%3A59%3A00Z&dst_second=2026-10-25T02%3A59%3A00Z&screenwidth=1200&screenheight=1223&dol_hide_topmenu=0&dol_hide_leftmenu=0&dol_optimize_smallscreen=0&dol_no_mouse_hover=0&dol_use_jmobile=0&username=admin&optioncss=print
+            - generic [ref=e63]: 
+        - generic "Consulter l'aide (nécessite un accès internet), <br><span class=\"fas fa-external-link-alt pictofixedwidth\" style=\"\"></span>Page Wiki \"Configuration module facture\" <span class=\"opacitymedium\">(Page d'aide dédiée liée à votre écran actuel)</span>" [ref=e65]:
+          - link " " [ref=e66] [cursor=pointer]:
+            - /url: http://wiki.dolibarr.org/index.php/Configuration_module_facture
+            - generic [ref=e67]: 
+            - generic [ref=e68]: 
+        - generic "Dolibarr 20.0.4" [ref=e70]:
+          - generic [ref=e71]: 20.0.4
+        - generic: 
+      - generic [ref=e74]:
+        - link "admin " [ref=e75] [cursor=pointer]:
+          - /url: /user/card.php?id=1
+          - generic [ref=e76]: admin
+          - text: 
+        - text:          
+  - generic [ref=e77]:
+    - generic [ref=e80]:
+      - generic [ref=e81]:
+        - combobox [ref=e82]
+        - combobox "Rechercher" [ref=e85] [cursor=pointer]:
+          - textbox [ref=e86]:
+            - generic [ref=e87]:
+              - generic [ref=e88]: 
+              - text: Rechercher
+      - link " Mon tableau de bord" [ref=e91] [cursor=pointer]:
+        - /url: /index.php?mainmenu=home&leftmenu=home
+        - generic [ref=e92]: 
+        - text: Mon tableau de bord
+      - link " Configuration" [ref=e95] [cursor=pointer]:
+        - /url: /admin/index.php?mainmenu=home&leftmenu=setup
+        - generic [ref=e96]: 
+        - text: Configuration
+      - link " Outils d'administration" [ref=e99] [cursor=pointer]:
+        - /url: /admin/tools/index.php?mainmenu=home&leftmenu=admintools
+        - generic [ref=e100]: 
+        - text: Outils d'administration
+      - link " Utilisateurs & Groupes" [ref=e103] [cursor=pointer]:
+        - /url: /user/home.php?leftmenu=users
+        - generic [ref=e104]: 
+        - text: Utilisateurs & Groupes
+    - generic [ref=e108]:
+      - table [ref=e109]:
+        - rowgroup [ref=e110]:
+          - row " Configuration du module Factures Retour liste des modules" [ref=e111]:
+            - cell "" [ref=e112]:
+              - generic [ref=e113]: 
+            - cell "Configuration du module Factures" [ref=e114]:
+              - generic [ref=e115]: Configuration du module Factures
+            - cell "Retour liste des modules" [ref=e116]:
+              - link "Retour liste des modules" [ref=e117] [cursor=pointer]:
+                - /url: /admin/modules.php?restore_lastsearch_values=1
+      - generic [ref=e118]:
+        - img "Factures" [ref=e120]
+        - link "Divers" [ref=e123] [cursor=pointer]:
+          - /url: /admin/invoice.php
+        - link "Règlements" [ref=e126] [cursor=pointer]:
+          - /url: /admin/payment.php
+        - link "Attributs supplémentaires (factures) 8" [ref=e129] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoice_cust_extrafields.php
+          - text: Attributs supplémentaires (factures)
+          - generic [ref=e130]: "8"
+        - link "Attributs supplémentaires (lignes)" [ref=e133] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoicedet_cust_extrafields.php
+        - link "Attributs supplémentaires (facture modèles)" [ref=e136] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoice_rec_cust_extrafields.php
+        - link "Attributs supplémentaires (ligne de factures modèles)" [ref=e139] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoicedet_rec_cust_extrafields.php
+      - generic [ref=e140]:
+        - table [ref=e141]:
+          - rowgroup [ref=e142]:
+            - row "Modèle de numérotation des factures et avoirs" [ref=e143]:
+              - cell "Modèle de numérotation des factures et avoirs" [ref=e144]:
+                - generic [ref=e145]: Modèle de numérotation des factures et avoirs
+        - table [ref=e147]:
+          - rowgroup [ref=e148]:
+            - row "Nom Description Exemple État Infos" [ref=e149]:
+              - cell "Nom" [ref=e150]
+              - cell "Description" [ref=e151]
+              - cell "Exemple" [ref=e152]
+              - cell "État" [ref=e153]
+              - cell "Infos" [ref=e154]
+            - row "mars Renvoie une numérotation au format FAyymm-nnnn pour les factures standards, FRyymm-nnnn pour les factures de remplacement, ACyymm-nnnn pour les factures d'acompte et AVyymm-nnnn pour les avoirs où yy est l'année, mm le mois et nnnn un compteur sans rupture ni retour à 0. FA0501-0001  " [ref=e155]:
+              - cell "mars" [ref=e156]
+              - cell "Renvoie une numérotation au format FAyymm-nnnn pour les factures standards, FRyymm-nnnn pour les factures de remplacement, ACyymm-nnnn pour les factures d'acompte et AVyymm-nnnn pour les avoirs où yy est l'année, mm le mois et nnnn un compteur sans rupture ni retour à 0." [ref=e157]
+              - cell "FA0501-0001" [ref=e158]
+              - cell "" [ref=e159]:
+                - link "" [ref=e160] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=setmod&token=eb6982284b9b77e644ca895977827501&value=mod_facture_mars
+                  - generic "Désactivé" [ref=e161]: 
+              - cell "" [ref=e162]:
+                - 'generic "Version: <b>20.0.4</b><br>Prochaine valeur (factures): FA2606-0020<br>Prochaine valeur (avoirs): AV2606-0001<br>Prochaine valeur (acomptes): AC2606-0001" [ref=e163]':
+                  - generic [ref=e164]: 
+            - row "terre Renvoie une numérotation au format FAyymm-nnnn pour les factures standard et AVyymm-nnnn pour les avoirs où yy es l'année, mm le mois et nnnn est un compteur sans rupture ni retour à zéro FA0501-0001  " [ref=e165]:
+              - cell "terre" [ref=e166]
+              - cell "Renvoie une numérotation au format FAyymm-nnnn pour les factures standard et AVyymm-nnnn pour les avoirs où yy es l'année, mm le mois et nnnn est un compteur sans rupture ni retour à zéro" [ref=e167]
+              - cell "FA0501-0001" [ref=e168]
+              - cell "" [ref=e169]:
+                - generic "Activé" [ref=e170]: 
+              - cell "" [ref=e171]:
+                - 'generic "Version: <b>20.0.4</b><br>Prochaine valeur (factures): FA2606-0020<br>Prochaine valeur (avoirs): AV2606-0001<br>Prochaine valeur (acomptes): AC2606-0001" [ref=e172]':
+                  - generic [ref=e173]: 
+            - 'row "mercure Renvoie un numéro personnalisable selon un masque à définir. Masque (Facture standard):  Modifier Masque (Facture avoir):  Masque (Facture d''acompte):  Module/Application non configuré  " [ref=e174]':
+              - cell "mercure" [ref=e175]
+              - 'cell "Renvoie un numéro personnalisable selon un masque à définir. Masque (Facture standard):  Modifier Masque (Facture avoir):  Masque (Facture d''acompte): " [ref=e176]':
+                - text: Renvoie un numéro personnalisable selon un masque à définir.
+                - table [ref=e178]:
+                  - rowgroup [ref=e179]:
+                    - 'row "Masque (Facture standard):  Modifier" [ref=e180]':
+                      - cell "Masque (Facture standard):" [ref=e181]
+                      - cell "" [ref=e182]:
+                        - textbox [ref=e184]
+                        - generic "Cliquez pour montrer l'info-bulle d'aide" [ref=e186] [cursor=pointer]: 
+                      - cell "Modifier" [ref=e187]:
+                        - button "Modifier" [ref=e188] [cursor=pointer]
+                    - 'row "Masque (Facture avoir): " [ref=e189]':
+                      - cell "Masque (Facture avoir):" [ref=e190]
+                      - cell "" [ref=e191]:
+                        - textbox [ref=e193]
+                        - generic "Cliquez pour montrer l'info-bulle d'aide" [ref=e195] [cursor=pointer]: 
+                    - 'row "Masque (Facture d''acompte): " [ref=e196]':
+                      - cell "Masque (Facture d'acompte):" [ref=e197]
+                      - cell "" [ref=e198]:
+                        - textbox [ref=e200]
+                        - generic "Cliquez pour montrer l'info-bulle d'aide" [ref=e202] [cursor=pointer]: 
+              - cell "Module/Application non configuré" [ref=e203]
+              - cell "" [ref=e204]:
+                - link "" [ref=e205] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=setmod&token=eb6982284b9b77e644ca895977827501&value=mod_facture_mercure
+                  - generic "Désactivé" [ref=e206]: 
+              - cell "" [ref=e207]:
+                - 'generic "Version: <b>20.0.4</b><br>Prochaine valeur (factures): Module/Application non configuré<br>Prochaine valeur (avoirs): Module/Application non configuré<br>Prochaine valeur (acomptes): Module/Application non configuré" [ref=e208]':
+                  - generic [ref=e209]: 
+        - table [ref=e210]:
+          - rowgroup [ref=e211]:
+            - row "Modèle de document de factures" [ref=e212]:
+              - cell "Modèle de document de factures" [ref=e213]:
+                - generic [ref=e214]: Modèle de document de factures
+        - table [ref=e216]:
+          - rowgroup [ref=e217]:
+            - row "Nom Description État Défaut Infos Aperçu" [ref=e218]:
+              - cell "Nom" [ref=e219]
+              - cell "Description" [ref=e220]
+              - cell "État" [ref=e221]
+              - cell "Défaut" [ref=e222]
+              - cell "Infos" [ref=e223]
+              - cell "Aperçu" [ref=e224]
+            - 'row "sponge Modèle de facture PDF Sponge. Un modèle de facture complet  Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570   " [ref=e225]':
+              - cell "sponge" [ref=e226]
+              - cell "Modèle de facture PDF Sponge. Un modèle de facture complet" [ref=e227]
+              - cell "" [ref=e228]:
+                - link "" [ref=e229] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=set&token=eb6982284b9b77e644ca895977827501&value=sponge&scan_dir=&label=sponge
+                  - generic "Définir par défaut" [ref=e230]: 
+              - 'cell "Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570 " [ref=e231]':
+                - text: "Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570"
+                - link "" [ref=e232] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=setdoc&token=eb6982284b9b77e644ca895977827501&value=sponge&scan_dir=&label=sponge
+                  - generic "Définir par défaut" [ref=e233]: 
+              - cell "" [ref=e234]:
+                - 'generic "Nom: sponge<br>Type: pdf<br>Largeur/Hauteur: 210/297<br>Path: core/modules/facture/doc/pdf_sponge.modules.php<br><br><u>Fonctionnalités prises en charge:</u><br>Logo: <span class=\"ok\">Oui</span><br>Mode de règlement: <span class=\"ok\">Oui</span><br>Conditions de règlement: <span class=\"ok\">Oui</span><br>Remises: <span class=\"ok\">Oui</span><br>Avoir: <span class=\"ok\">Oui</span><br>Multi-langage: <span class=\"ok\">Oui</span><br>Filigrane sur les brouillons de factures (aucun si vide): <span class=\"ok\">Oui</span>" [ref=e235]':
+                  - generic [ref=e236]: 
+              - cell "" [ref=e237]:
+                - link "" [ref=e238] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=specimen&module=sponge
+                  - generic "Aperçu" [ref=e239]: 
+            - 'row "crabe Modèle de facture PDF Crabe. Un modèle de facture complet (ancienne implémentation du modèle Sponge)  Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570   " [ref=e240]':
+              - cell "crabe" [ref=e241]
+              - cell "Modèle de facture PDF Crabe. Un modèle de facture complet (ancienne implémentation du modèle Sponge)" [ref=e242]
+              - cell "" [ref=e243]:
+                - link "" [ref=e244] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=del&token=eb6982284b9b77e644ca895977827501&value=crabe
+                  - generic "Actif" [ref=e245]: 
+              - 'cell "Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570 " [ref=e246]':
+                - text: "Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570"
+                - link "" [ref=e247] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=setdoc&token=eb6982284b9b77e644ca895977827501&value=crabe&scan_dir=&label=crabe
+                  - generic "Définir par défaut" [ref=e248]: 
+              - cell "" [ref=e249]:
+                - 'generic "Nom: crabe<br>Type: pdf<br>Largeur/Hauteur: 210/297<br>Path: core/modules/facture/doc/pdf_crabe.modules.php<br><br><u>Fonctionnalités prises en charge:</u><br>Logo: <span class=\"ok\">Oui</span><br>Mode de règlement: <span class=\"ok\">Oui</span><br>Conditions de règlement: <span class=\"ok\">Oui</span><br>Remises: <span class=\"ok\">Oui</span><br>Avoir: <span class=\"ok\">Oui</span><br>Multi-langage: <span class=\"ok\">Oui</span><br>Filigrane sur les brouillons de factures (aucun si vide): <span class=\"ok\">Oui</span>" [ref=e250]':
+                  - generic [ref=e251]: 
+              - cell "" [ref=e252]:
+                - link "" [ref=e253] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=specimen&module=crabe
+                  - generic "Aperçu" [ref=e254]: 
+            - 'row "ODT/ODS templates Génération depuis des modèles OpenDocument (Fichier .ODT ou .ODS LibreOffice, KOffice, TextEdit…). Liste des répertoires des modèles OpenDocument  DOL_DATA_ROOT/doctemplates/invoices Modifier Nombre de fichiers modèles ODT/ODS trouvés: 1 - template_invoice.odt   Téléverser un / des nouveau(x) modèle(s) Choose File Envoyer fichier  Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570   " [ref=e255]':
+              - cell "ODT/ODS templates" [ref=e256]
+              - 'cell "Génération depuis des modèles OpenDocument (Fichier .ODT ou .ODS LibreOffice, KOffice, TextEdit…). Liste des répertoires des modèles OpenDocument  DOL_DATA_ROOT/doctemplates/invoices Modifier Nombre de fichiers modèles ODT/ODS trouvés: 1 - template_invoice.odt   Téléverser un / des nouveau(x) modèle(s) Choose File Envoyer fichier" [ref=e257]':
+                - text: Génération depuis des modèles OpenDocument (Fichier .ODT ou .ODS LibreOffice, KOffice, TextEdit…).
+                - table [ref=e259]:
+                  - rowgroup [ref=e260]:
+                    - 'row "Liste des répertoires des modèles OpenDocument  DOL_DATA_ROOT/doctemplates/invoices Modifier Nombre de fichiers modèles ODT/ODS trouvés: 1 - template_invoice.odt   Téléverser un / des nouveau(x) modèle(s) Choose File Envoyer fichier" [ref=e261]':
+                      - 'cell "Liste des répertoires des modèles OpenDocument  DOL_DATA_ROOT/doctemplates/invoices Modifier Nombre de fichiers modèles ODT/ODS trouvés: 1 - template_invoice.odt   Téléverser un / des nouveau(x) modèle(s) Choose File Envoyer fichier" [ref=e262]':
+                        - text: Liste des répertoires des modèles OpenDocument
+                        - generic "Cliquez pour montrer l'info-bulle d'aide" [ref=e264] [cursor=pointer]: 
+                        - generic [ref=e265]:
+                          - textbox [ref=e267]: DOL_DATA_ROOT/doctemplates/invoices
+                          - button "Modifier" [ref=e269] [cursor=pointer]
+                        - text: "Nombre de fichiers modèles ODT/ODS trouvés: 1"
+                        - generic [ref=e270]:
+                          - text: "- template_invoice.odt"
+                          - link "" [ref=e271] [cursor=pointer]:
+                            - /url: /document.php?modulepart=doctemplates&file=invoices/template_invoice.odt
+                            - generic [ref=e272]: 
+                          - link "" [ref=e273] [cursor=pointer]:
+                            - /url: /admin/invoice.php?modulepart=doctemplates&keyforuploaddir=FACTURE_ADDON_PDF_ODT_PATH&action=deletefile&token=eb6982284b9b77e644ca895977827501&file=template_invoice.odt
+                            - generic [ref=e274]: 
+                        - generic [ref=e275]:
+                          - text: Téléverser un / des nouveau(x) modèle(s)
+                          - button "Choose File" [ref=e276]
+                          - button "Envoyer fichier" [ref=e277] [cursor=pointer]
+              - cell "" [ref=e278]:
+                - link "" [ref=e279] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=set&token=eb6982284b9b77e644ca895977827501&value=generic_invoice_odt&scan_dir=FACTURE_ADDON_PDF_ODT_PATH&label=ODT%2FODS+templates
+                  - generic "Définir par défaut" [ref=e280]: 
+              - 'cell "Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570 " [ref=e281]':
+                - text: "Warning: Undefined property: stdClass::$FACTURE_ADDON_PDF in /var/www/html/admin/invoice.php on line 570"
+                - link "" [ref=e282] [cursor=pointer]:
+                  - /url: /admin/invoice.php?action=setdoc&token=eb6982284b9b77e644ca895977827501&value=generic_invoice_odt&scan_dir=FACTURE_ADDON_PDF_ODT_PATH&label=ODT%2FODS+templates
+                  - generic "Définir par défaut" [ref=e283]: 
+              - cell "" [ref=e284]:
+                - 'generic "Nom: ODT/ODS templates<br>Type: odt<br>Path: core/modules/facture/doc/doc_generic_invoice_odt.modules.php<br><br><u>Fonctionnalités prises en charge:</u><br>Logo: <span class=\"ok\">Oui</span><br>Mode de règlement: <span class=\"ok\">Oui</span><br>Conditions de règlement: <span class=\"ok\">Oui</span><br>Remises: <span class=\"error\">Non</span><br>Avoir: <span class=\"error\">Non</span><br>Multi-langage: <span class=\"ok\">Oui</span><br>Filigrane sur les brouillons de factures (aucun si vide): <span class=\"error\">Non</span>" [ref=e285]':
+                  - generic [ref=e286]: 
+              - cell "" [ref=e287]:
+                - generic "Aperçu non disponible" [ref=e288]: 
+        - table [ref=e289]:
+          - rowgroup [ref=e290]:
+            - row "Mode de paiement suggéré sur la facture par défaut s'il n'est pas défini sur la facture" [ref=e291]:
+              - cell "Mode de paiement suggéré sur la facture par défaut s'il n'est pas défini sur la facture" [ref=e292]:
+                - generic [ref=e293]: Mode de paiement suggéré sur la facture par défaut s'il n'est pas défini sur la facture
+        - table [ref=e296]:
+          - rowgroup [ref=e297]:
+            - row "Mode de règlement Modifier" [ref=e298]:
+              - cell "Mode de règlement" [ref=e299]
+              - cell "Modifier" [ref=e300]:
+                - button "Modifier" [ref=e301] [cursor=pointer]
+            - row "Proposer paiement par virement sur le compte Module comptes bancaires non activé" [ref=e302]:
+              - cell "Proposer paiement par virement sur le compte" [ref=e303]
+              - cell "Module comptes bancaires non activé" [ref=e304]
+            - row "Proposer paiement par chèque à l'ordre et adresse de Ne pas suggérer" [ref=e305]:
+              - cell "Proposer paiement par chèque à l'ordre et adresse de" [ref=e306]
+              - cell "Ne pas suggérer" [ref=e307]:
+                - combobox [ref=e308]
+                - combobox "Ne pas suggérer" [ref=e311] [cursor=pointer]:
+                  - textbox "Ne pas suggérer" [ref=e312]
+        - table [ref=e313]:
+          - rowgroup [ref=e314]:
+            - row "Autres options" [ref=e315]:
+              - cell "Autres options" [ref=e316]:
+                - generic [ref=e317]: Autres options
+        - table [ref=e319]:
+          - rowgroup [ref=e320]:
+            - row "Paramètres Valeur" [ref=e321]:
+              - cell "Paramètres" [ref=e322]
+              - cell "Valeur" [ref=e323]
+              - cell [ref=e324]
+            - row "Forcer la date de facturation à la date de validation (seulement de Brouillon à Impayée) Non Modifier" [ref=e325]:
+              - cell "Forcer la date de facturation à la date de validation (seulement de Brouillon à Impayée)" [ref=e326]
+              - cell "Non" [ref=e327]:
+                - combobox [ref=e328]:
+                  - option "Oui"
+                  - option "Non" [selected]
+              - cell "Modifier" [ref=e329]:
+                - button "Modifier" [ref=e330] [cursor=pointer]
+            - row "Mention complémentaire sur les factures  Rich Text Editor, INVOICE_FREE_TEXT Modifier" [ref=e331]:
+              - cell "Mention complémentaire sur les factures  Rich Text Editor, INVOICE_FREE_TEXT" [ref=e332]:
+                - generic [ref=e333]:
+                  - generic [ref=e334]: Mention complémentaire sur les factures
+                  - generic "Cliquez pour montrer l'info-bulle d'aide" [ref=e336] [cursor=pointer]: 
+                - application "Rich Text Editor, INVOICE_FREE_TEXT" [ref=e337]:
+                  - group "Barres d'outils de l'éditeur":
+                    - toolbar [ref=e338]:
+                      - button "Agrandir" [ref=e339]
+                    - toolbar [ref=e341]:
+                      - button "Annuler" [disabled] [ref=e342]
+                      - button "Rétablir" [disabled] [ref=e344]
+                      - separator [ref=e346]
+                      - button "Rechercher" [ref=e347]
+                      - button "Remplacer" [ref=e349]
+                    - toolbar [ref=e351]:
+                      - button "Police" [ref=e352]:
+                        - generic [ref=e353]: Police
+                      - button "Taille" [ref=e356]:
+                        - generic [ref=e357]: Taille
+                    - toolbar [ref=e360]:
+                      - button "Gras" [ref=e361]
+                      - button "Italique" [ref=e363]
+                      - button "Souligné" [ref=e365]
+                      - button "Barré" [ref=e367]
+                      - separator [ref=e369]
+                      - button "Couleur du texte" [ref=e370]
+                      - button "Supprimer la mise en forme" [ref=e373]
+                    - toolbar [ref=e375]:
+                      - button "Insérer/Supprimer une liste numérotée" [ref=e376]
+                      - button "Insérer/Supprimer une liste à puces" [ref=e378]
+                      - button "Diminuer le retrait" [disabled] [ref=e380]
+                      - button "Augmenter le retrait" [ref=e382]
+                    - toolbar [ref=e384]:
+                      - button "Aligner à gauche" [ref=e385]
+                      - button "Centrer" [ref=e387]
+                      - button "Aligner à droite" [ref=e389]
+                      - button "Justifier" [ref=e391]
+                    - toolbar [ref=e393]:
+                      - button "Lien" [ref=e394]
+                      - button "Supprimer le lien" [disabled] [ref=e396]
+                      - button "Image" [ref=e398]
+                      - button "Tableau" [ref=e400]
+                      - button "Ligne horizontale" [ref=e402]
+                    - toolbar [ref=e404]:
+                      - button "Source" [ref=e405]:
+                        - generic [ref=e407]: Source
+                  - iframe [ref=e408]:
+                    - textbox "Éditeur de texte enrichi, INVOICE_FREE_TEXT" [active] [ref=f1e1]
+              - cell "Modifier" [ref=e409]:
+                - button "Modifier" [ref=e410] [cursor=pointer]
+            - row "Filigrane sur les brouillons de factures (aucun si vide)  Modifier" [ref=e411]:
+              - cell "Filigrane sur les brouillons de factures (aucun si vide) " [ref=e412]:
+                - generic [ref=e413]:
+                  - generic [ref=e414]: Filigrane sur les brouillons de factures (aucun si vide)
+                  - generic "Cliquez pour montrer l'info-bulle d'aide" [ref=e416] [cursor=pointer]: 
+              - cell [ref=e417]:
+                - textbox [ref=e418]
+              - cell "Modifier" [ref=e419]:
+                - button "Modifier" [ref=e420] [cursor=pointer]
+            - row "Vérifier la facture avant validation  " [ref=e421]:
+              - cell "Vérifier la facture avant validation " [ref=e422]:
+                - text: Vérifier la facture avant validation
+                - generic "Valider une facture est interdit si sa date est antérieur à la date de la dernière facture du même type" [ref=e423]:
+                  - generic [ref=e424]: 
+              - cell "" [ref=e425]:
+                - generic "Désactivé" [ref=e427] [cursor=pointer]: 
+                - text: 
+            - row "Autoriser le téléchargement externe (sans connexion, en utilisant un lien partagé) " [ref=e428]:
+              - cell "Autoriser le téléchargement externe (sans connexion, en utilisant un lien partagé)" [ref=e429]
+              - cell "" [ref=e430]:
+                - generic "Désactivé" [ref=e432] [cursor=pointer]: 
+                - text: 
+        - table [ref=e433]:
+          - rowgroup [ref=e434]:
+            - row "Chemin d'accès aux documents" [ref=e435]:
+              - cell "Chemin d'accès aux documents" [ref=e436]:
+                - generic [ref=e437]: Chemin d'accès aux documents
+        - table [ref=e439]:
+          - rowgroup [ref=e440]:
+            - row "Nom Valeur" [ref=e441]:
+              - cell "Nom" [ref=e442]
+              - cell "Valeur" [ref=e443]
+            - row "Répertoire /var/www/documents/facture" [ref=e444]:
+              - cell "Répertoire" [ref=e445]
+              - cell "/var/www/documents/facture" [ref=e446]
+        - table [ref=e447]:
+          - rowgroup [ref=e448]:
+            - row "Notifications" [ref=e449]:
+              - cell "Notifications" [ref=e450]:
+                - generic [ref=e451]: Notifications
+        - table [ref=e453]:
+          - rowgroup [ref=e454]:
+            - row "Paramètre" [ref=e455]:
+              - cell "Paramètre" [ref=e456]
+              - cell [ref=e457]
+              - cell [ref=e458]
+            - row "Vous pouvez trouver d'autres options pour la notification par Email en activant et configurant le module \"Notification\"." [ref=e459]:
+              - cell "Vous pouvez trouver d'autres options pour la notification par Email en activant et configurant le module \"Notification\"." [ref=e460]: Vous pouvez trouver d'autres options pour la notification par Email en activant et configurant le module "Notification".
+              - cell [ref=e461]
+  - log [ref=e462]
+  - log [ref=e463]
+  - log [ref=e464]
+  - log [ref=e465]
+  - log [ref=e466]
+  - log [ref=e467]
+  - log [ref=e468]
+  - log [ref=e469]
+  - log [ref=e470]
+  - log [ref=e471]
+  - log [ref=e472]
+  - log [ref=e473]
+  - log [ref=e474]
+  - log [ref=e475]
+  - log [ref=e476]

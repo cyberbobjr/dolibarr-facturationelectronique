@@ -79,6 +79,19 @@ if ($action === 'activate_provider') {
 	}
 }
 
+if ($action === 'update_features') {
+	$feat_einvoicing = GETPOSTINT('feat_einvoicing') ? 1 : 0;
+	$feat_siren = GETPOSTINT('feat_siren') ? 1 : 0;
+	$r1 = dolibarr_set_const($db, 'FACTURELECT_FEATURE_EINVOICING', $feat_einvoicing, 'chaine', 0, 'Enable electronic invoice transmission feature', $conf->entity);
+	$r2 = dolibarr_set_const($db, 'FACTURELECT_FEATURE_SIREN', $feat_siren, 'chaine', 0, 'Enable SIREN directory management feature', $conf->entity);
+	if ($r1 >= 0 && $r2 >= 0) {
+		setEventMessages("Fonctionnalités mises à jour.", null, 'mesgs');
+	} else {
+		setEventMessages($langs->trans("ErrorFailedToSave"), null, 'errors');
+		$error++;
+	}
+}
+
 
 // Perform connection test
 $connection_tested = false;
@@ -117,6 +130,8 @@ if ($action === 'sync_selected') {
 }
 
 // Retrieve saved values
+$feat_einvoicing = getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1);
+$feat_siren = getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1);
 $mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE');
 if (empty($mode)) {
 	$mode = 'sandbox'; // Default to sandbox
@@ -224,6 +239,42 @@ if ($sync_triggered) {
 		print '</div>';
 	}
 }
+
+// Feature toggles card (full width, above the credentials grid)
+print '<div class="fe-card" style="margin-bottom:20px;">';
+print '  <h3 class="fe-card-title"><span class="fa fa-toggle-on"></span> Fonctionnalités actives</h3>';
+print '  <p style="color:#64748b; font-size:13px; margin-bottom:16px;">Activez ou désactivez chaque fonctionnalité indépendamment. Les deux peuvent coexister ou fonctionner séparément.</p>';
+print '  <form action="' . $_SERVER['PHP_SELF'] . '" method="post">';
+print '    <input type="hidden" name="token" value="' . newToken() . '">';
+print '    <input type="hidden" name="action" value="update_features">';
+print '    <div style="display:flex; flex-direction:column; gap:14px;">';
+
+// Feature 1 — Transmission
+$f1_on = (int) $feat_einvoicing;
+print '      <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding:12px; border-radius:8px; border:1px solid ' . ($f1_on ? '#10b981' : '#e2e8f0') . '; background:' . ($f1_on ? '#f0fdf4' : '#f8fafc') . ';">';
+print '        <input type="checkbox" name="feat_einvoicing" value="1" ' . ($f1_on ? 'checked' : '') . ' style="margin-top:2px; width:16px; height:16px;">';
+print '        <div>';
+print '          <strong style="color:#1e293b;"><span class="fa fa-paper-plane" style="color:#10b981; margin-right:6px;"></span>Transmission électronique</strong>';
+print '          <p style="margin:4px 0 0; font-size:12px; color:#64748b;">Envoi et réception de factures via le PDP (Factur-X, SuperPDP), onglet de statut sur les fiches factures, e-reporting paiements, listes Factures Émises / Reçues.</p>';
+print '        </div>';
+print '      </label>';
+
+// Feature 2 — SIREN
+$f2_on = (int) $feat_siren;
+print '      <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding:12px; border-radius:8px; border:1px solid ' . ($f2_on ? '#10b981' : '#e2e8f0') . '; background:' . ($f2_on ? '#f0fdf4' : '#f8fafc') . ';">';
+print '        <input type="checkbox" name="feat_siren" value="1" ' . ($f2_on ? 'checked' : '') . ' style="margin-top:2px; width:16px; height:16px;">';
+print '        <div>';
+print '          <strong style="color:#1e293b;"><span class="fa fa-search" style="color:#10b981; margin-right:6px;"></span>Gestion SIREN &amp; Annuaire</strong>';
+print '          <p style="margin:4px 0 0; font-size:12px; color:#64748b;">Recherche et vérification SIREN des tiers dans l\'annuaire national, détection des SIREN manquants/incorrects, enrichissement des coordonnées, bouton de vérification sur les fiches tiers.</p>';
+print '        </div>';
+print '      </label>';
+
+print '    </div>';
+print '    <div style="margin-top:16px;">';
+print '      <button type="submit" class="fe-btn fe-btn-primary"><span class="fa fa-save"></span> Enregistrer les fonctionnalités</button>';
+print '    </div>';
+print '  </form>';
+print '</div>';
 
 print '<div class="fe-grid">';
 

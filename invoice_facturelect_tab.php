@@ -11,6 +11,13 @@ if (!class_exists('FacturelectClient')) {
 	require_once './class/facturelectclient.class.php';
 }
 
+if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
+	llxHeader('', 'Facturation Électronique');
+	print '<div class="info">La fonctionnalité de <strong>transmission électronique</strong> est désactivée. Activez-la dans <a href="' . dol_buildpath('/facturationelectronique/admin/setup.php', 1) . '">Configuration > Fonctionnalités</a>.</div>';
+	llxFooter();
+	exit;
+}
+
 $id = GETPOST('id', 'int');
 if ($id <= 0) {
 	accessforbidden();

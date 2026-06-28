@@ -35,6 +35,12 @@ if (!class_exists('FacturelectClient')) {
 if (!$user->rights->fournisseur->facture->lire) {
 	accessforbidden();
 }
+if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
+	llxHeader('', 'Facturation Électronique');
+	print '<div class="info">La fonctionnalité de <strong>transmission électronique</strong> est désactivée. Activez-la dans <a href="' . dol_buildpath('/facturationelectronique/admin/setup.php', 1) . '">Configuration > Fonctionnalités</a>.</div>';
+	llxFooter();
+	exit;
+}
 
 $langs->loadLangs(array("admin", "bills", "suppliers", "facturation_electronique@facturationelectronique"));
 

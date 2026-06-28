@@ -105,7 +105,7 @@ class modFacturationElectronique extends DolibarrModules
 					'frequency' => 1,
 					'unitfrequency' => 3600,
 					'status' => 0,
-					'test' => 'isModEnabled("facturationelectronique")',
+					'test' => 'isModEnabled("facturationelectronique") && getDolGlobalInt("FACTURELECT_FEATURE_EINVOICING", 1)',
 					'priority' => 50,
 				),
 			),
@@ -138,7 +138,7 @@ class modFacturationElectronique extends DolibarrModules
 		);
 		$r++;
 
-		// 2. Submenu Factures Reçues
+		// 2. Submenu Factures Reçues (Transmission feature only)
 		$this->menu[$r] = array(
 			'fk_menu' => 'fk_mainmenu=facturelect',
 			'mainmenu' => 'facturelect',
@@ -149,14 +149,14 @@ class modFacturationElectronique extends DolibarrModules
 			'url' => '/custom/facturationelectronique/inbound_list.php?mainmenu=facturelect&leftmenu=inbound',
 			'langs' => 'facturation_electronique@facturationelectronique',
 			'position' => 100,
-			'enabled' => 'isModEnabled("facturationelectronique")',
+			'enabled' => 'isModEnabled("facturationelectronique") && getDolGlobalInt("FACTURELECT_FEATURE_EINVOICING", 1)',
 			'perms' => '$user->rights->facturation_electronique->lire',
 			'target' => '',
 			'user' => 0,
 		);
 		$r++;
 
-		// 3. Submenu Factures Émises
+		// 3. Submenu Factures Émises (Transmission feature only)
 		$this->menu[$r] = array(
 			'fk_menu' => 'fk_mainmenu=facturelect',
 			'mainmenu' => 'facturelect',
@@ -167,7 +167,7 @@ class modFacturationElectronique extends DolibarrModules
 			'url' => '/custom/facturationelectronique/outbound_list.php?mainmenu=facturelect&leftmenu=outbound',
 			'langs' => 'facturation_electronique@facturationelectronique',
 			'position' => 110,
-			'enabled' => 'isModEnabled("facturationelectronique")',
+			'enabled' => 'isModEnabled("facturationelectronique") && getDolGlobalInt("FACTURELECT_FEATURE_EINVOICING", 1)',
 			'perms' => '$user->rights->facturation_electronique->lire',
 			'target' => '',
 			'user' => 0,

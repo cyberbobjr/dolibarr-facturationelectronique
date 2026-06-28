@@ -94,6 +94,10 @@ class ActionsFacturationelectronique extends CommonHookActions
 	{
 		global $conf, $user, $langs;
 
+		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
+			return 0;
+		}
+
 		if ($parameters['currentcontext'] === 'invoicecard' && $action === 'send_facturelect') {
 			$langs->load('facturation_electronique@facturationelectronique');
 
@@ -265,15 +269,30 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$thirdparty_zip = $object->thirdparty->zip;
 		}
 
+		// Feature flags — default ON so installations without the constants behave as before
+		$feat_einvoicing = (bool) getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1);
+		$feat_siren = (bool) getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1);
+
+		// 1. Third-party Card — SIREN lookup feature only
+		if ($parameters['currentcontext'] === 'thirdpartycard') {
+			if (!$feat_siren) {
+				return 0;
+			}
+		}
+
 		// 1. Third-party Card & Invoice Card (for fast SIREN lookup modal)
 		if ($parameters['currentcontext'] === 'thirdpartycard' || $parameters['currentcontext'] === 'invoicecard') {
+			if (!$feat_siren && !$feat_einvoicing) {
+				return 0;
+			}
+
 			// Ensure CSS is loaded
 			echo '<link rel="stylesheet" type="text/css" href="' . $this->getCssUrl() . '">';
 
 			$client = new FacturelectClient($this->db);
 			$provider_name = $client->getProviderName();
 
-			if ($parameters['currentcontext'] === 'thirdpartycard') {
+			if ($feat_siren && $parameters['currentcontext'] === 'thirdpartycard') {
 				$siren = !empty($object->siren) ? $object->siren : $object->idprof1;
 				$btn_text = empty($siren) ? "Rechercher SIREN (" . $provider_name . ")" : "Vérifier/Mettre à jour SIREN (" . $provider_name . ")";
 
@@ -579,8 +598,8 @@ class ActionsFacturationelectronique extends CommonHookActions
 			<?php
 		}
 
-		// 2. Customer Invoice Card
-		if ($parameters['currentcontext'] === 'invoicecard') {
+		// 2. Customer Invoice Card — Transmission feature (banner + action buttons)
+		if ($feat_einvoicing && $parameters['currentcontext'] === 'invoicecard') {
 			// Ensure CSS is loaded
 			echo '<link rel="stylesheet" type="text/css" href="' . $this->getCssUrl() . '">';
 
@@ -1392,6 +1411,9 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 */
 	public function createFrom($parameters, &$object, &$action, $hookmanager)
 	{
+		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
+			return 0;
+		}
 		if (is_object($object) && $object->element === 'facture') {
 			$object->array_options['options_facturelect_invoice_id'] = '';
 			$object->array_options['options_facturelect_status'] = 'not_sent';

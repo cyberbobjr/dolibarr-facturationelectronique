@@ -37,6 +37,11 @@ if (!$user->admin && !$user->rights->societe->lire) {
 	echo json_encode(array('success' => false, 'error' => 'Permission denied'));
 	exit;
 }
+if (!getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1)) {
+	header('Content-Type: application/json');
+	echo json_encode(array('success' => false, 'error' => 'La fonctionnalité Gestion SIREN est désactivée.'));
+	exit;
+}
 
 $action = GETPOST('action', 'alpha');
 $siren = GETPOST('siren', 'alpha');

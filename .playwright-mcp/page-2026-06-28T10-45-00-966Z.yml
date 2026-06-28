@@ -1,0 +1,218 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e5]:
+      - text: 
+      - listitem [ref=e6]:
+        - generic [ref=e7]:
+          - link "" [ref=e8] [cursor=pointer]:
+            - /url: /index.php?mainmenu=home&leftmenu=home
+            - generic [ref=e10]: 
+          - link "Accueil" [ref=e11] [cursor=pointer]:
+            - /url: /index.php?mainmenu=home&leftmenu=home
+      - listitem [ref=e12]:
+        - generic [ref=e13]:
+          - link "" [ref=e14] [cursor=pointer]:
+            - /url: /societe/index.php?mainmenu=companies&leftmenu=
+            - generic [ref=e16]: 
+          - link "Tiers" [ref=e17] [cursor=pointer]:
+            - /url: /societe/index.php?mainmenu=companies&leftmenu=
+      - listitem [ref=e18]:
+        - generic [ref=e19]:
+          - link "" [ref=e20] [cursor=pointer]:
+            - /url: /product/index.php?mainmenu=products&leftmenu=
+            - generic [ref=e22]: 
+          - link "Produits | Services" [ref=e23] [cursor=pointer]:
+            - /url: /product/index.php?mainmenu=products&leftmenu=
+      - listitem [ref=e24]:
+        - generic [ref=e25]:
+          - link "" [ref=e26] [cursor=pointer]:
+            - /url: /comm/index.php?mainmenu=commercial&leftmenu=
+            - generic [ref=e28]: 
+          - link "Commerce" [ref=e29] [cursor=pointer]:
+            - /url: /comm/index.php?mainmenu=commercial&leftmenu=
+      - listitem [ref=e30]:
+        - generic [ref=e31]:
+          - link "" [ref=e32] [cursor=pointer]:
+            - /url: /compta/index.php?mainmenu=billing&leftmenu=
+            - generic [ref=e34]: 
+          - link "Facturation | Paiement" [ref=e35] [cursor=pointer]:
+            - /url: /compta/index.php?mainmenu=billing&leftmenu=
+      - listitem [ref=e36]:
+        - generic [ref=e37]:
+          - link "" [ref=e38] [cursor=pointer]:
+            - /url: /comm/action/index.php?idmenu=1&mainmenu=agenda&leftmenu=
+            - generic [ref=e40]: 
+          - link "Agenda" [ref=e41] [cursor=pointer]:
+            - /url: /comm/action/index.php?idmenu=1&mainmenu=agenda&leftmenu=
+      - listitem [ref=e42]:
+        - generic [ref=e43]:
+          - link "" [ref=e44] [cursor=pointer]:
+            - /url: /core/tools.php?mainmenu=tools&leftmenu=
+            - generic [ref=e46]: 
+          - link "Outils" [ref=e47] [cursor=pointer]:
+            - /url: /core/tools.php?mainmenu=tools&leftmenu=
+      - listitem [ref=e48]:
+        - generic [ref=e49]:
+          - link "" [ref=e50] [cursor=pointer]:
+            - /url: /custom/facturationelectronique/inbound_list.php?mainmenu=facturelect&leftmenu=inbound&idmenu=148
+            - generic [ref=e52]: 
+          - link "Facturation Électronique" [ref=e53] [cursor=pointer]:
+            - /url: /custom/facturationelectronique/inbound_list.php?mainmenu=facturelect&leftmenu=inbound&idmenu=148
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - generic "Générateur de Module et Application" [ref=e57]:
+          - link "" [ref=e58] [cursor=pointer]:
+            - /url: /modulebuilder/index.php?mainmenu=home&leftmenu=admintools
+            - generic [ref=e59]: 
+        - generic "Afficher page d'impression de la zone centrale" [ref=e61]:
+          - link "" [ref=e62] [cursor=pointer]:
+            - /url: /admin/payment.php?optioncss=print
+            - generic [ref=e63]: 
+        - generic "Consulter l'aide (nécessite un accès internet), <br><span class=\"fas fa-external-link-alt pictofixedwidth\" style=\"\"></span>Page Wiki \"Configuration module facture\" <span class=\"opacitymedium\">(Page d'aide dédiée liée à votre écran actuel)</span>" [ref=e65]:
+          - link " " [ref=e66] [cursor=pointer]:
+            - /url: http://wiki.dolibarr.org/index.php/Configuration_module_facture
+            - generic [ref=e67]: 
+            - generic [ref=e68]: 
+        - generic "Dolibarr 20.0.4" [ref=e70]:
+          - generic [ref=e71]: 20.0.4
+        - generic: 
+      - generic [ref=e74]:
+        - link "admin " [ref=e75] [cursor=pointer]:
+          - /url: /user/card.php?id=1
+          - generic [ref=e76]: admin
+          - text: 
+        - text:          
+  - generic [ref=e77]:
+    - generic [ref=e80]:
+      - generic [ref=e81]:
+        - combobox [ref=e82]
+        - combobox "Rechercher" [ref=e85] [cursor=pointer]:
+          - textbox [ref=e86]:
+            - generic [ref=e87]:
+              - generic [ref=e88]: 
+              - text: Rechercher
+      - link " Mon tableau de bord" [ref=e91] [cursor=pointer]:
+        - /url: /index.php?mainmenu=home&leftmenu=home
+        - generic [ref=e92]: 
+        - text: Mon tableau de bord
+      - link " Configuration" [ref=e95] [cursor=pointer]:
+        - /url: /admin/index.php?mainmenu=home&leftmenu=setup
+        - generic [ref=e96]: 
+        - text: Configuration
+      - link " Outils d'administration" [ref=e99] [cursor=pointer]:
+        - /url: /admin/tools/index.php?mainmenu=home&leftmenu=admintools
+        - generic [ref=e100]: 
+        - text: Outils d'administration
+      - link " Utilisateurs & Groupes" [ref=e103] [cursor=pointer]:
+        - /url: /user/home.php?leftmenu=users
+        - generic [ref=e104]: 
+        - text: Utilisateurs & Groupes
+    - generic [ref=e108]:
+      - table [ref=e109]:
+        - rowgroup [ref=e110]:
+          - row " Configuration du module Factures Retour liste des modules" [ref=e111]:
+            - cell "" [ref=e112]:
+              - generic [ref=e113]: 
+            - cell "Configuration du module Factures" [ref=e114]:
+              - generic [ref=e115]: Configuration du module Factures
+            - cell "Retour liste des modules" [ref=e116]:
+              - link "Retour liste des modules" [ref=e117] [cursor=pointer]:
+                - /url: /admin/modules.php?restore_lastsearch_values=1
+      - generic [ref=e118]:
+        - img "Factures" [ref=e120]
+        - link "Divers" [ref=e123] [cursor=pointer]:
+          - /url: /admin/invoice.php
+        - link "Règlements" [ref=e126] [cursor=pointer]:
+          - /url: /admin/payment.php
+        - link "Attributs supplémentaires (factures) 8" [ref=e129] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoice_cust_extrafields.php
+          - text: Attributs supplémentaires (factures)
+          - generic [ref=e130]: "8"
+        - link "Attributs supplémentaires (lignes)" [ref=e133] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoicedet_cust_extrafields.php
+        - link "Attributs supplémentaires (facture modèles)" [ref=e136] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoice_rec_cust_extrafields.php
+        - link "Attributs supplémentaires (ligne de factures modèles)" [ref=e139] [cursor=pointer]:
+          - /url: /compta/facture/admin/invoicedet_rec_cust_extrafields.php
+      - generic [ref=e140]:
+        - table [ref=e141]:
+          - rowgroup [ref=e142]:
+            - row "Modèle de numérotation des paiements" [ref=e143]:
+              - cell "Modèle de numérotation des paiements" [ref=e144]:
+                - generic [ref=e145]: Modèle de numérotation des paiements
+        - table [ref=e147]:
+          - rowgroup [ref=e148]:
+            - row "Nom Description Exemple État Infos" [ref=e149]:
+              - cell "Nom" [ref=e150]
+              - cell "Description" [ref=e151]
+              - cell "Exemple" [ref=e152]
+              - cell "État" [ref=e153]
+              - cell "Infos" [ref=e154]
+            - row "cicada Renvoie le numéro sous la forme PAYyymm-nnnn où yy est l'année, mm le mois et nnnn un compteur séquentiel sans rupture et sans remise à 0. PAY0501-0001  " [ref=e155]:
+              - cell "cicada" [ref=e156]
+              - cell "Renvoie le numéro sous la forme PAYyymm-nnnn où yy est l'année, mm le mois et nnnn un compteur séquentiel sans rupture et sans remise à 0." [ref=e157]
+              - cell "PAY0501-0001" [ref=e158]
+              - cell "" [ref=e159]:
+                - generic "Activé" [ref=e160]: 
+              - cell "" [ref=e161]:
+                - 'generic "Version: <b>20.0.4</b><br>Prochaine valeur: PAY2606-0005<br>" [ref=e162]':
+                  - generic [ref=e163]: 
+            - 'row "ant Renvoie un numéro personnalisable selon un masque à définir. Masque:  Modifier Module/Application non configuré  " [ref=e164]':
+              - cell "ant" [ref=e165]
+              - 'cell "Renvoie un numéro personnalisable selon un masque à définir. Masque:  Modifier" [ref=e166]':
+                - text: Renvoie un numéro personnalisable selon un masque à définir.
+                - table [ref=e168]:
+                  - rowgroup [ref=e169]:
+                    - 'row "Masque:  Modifier" [ref=e170]':
+                      - cell "Masque:" [ref=e171]
+                      - cell "" [ref=e172]:
+                        - textbox [ref=e174]
+                        - generic [ref=e175]:
+                          - generic [ref=e176]: 
+                      - cell "Modifier" [ref=e177]:
+                        - button "Modifier" [ref=e178] [cursor=pointer]
+              - cell "Module/Application non configuré" [ref=e179]
+              - cell "" [ref=e180]:
+                - link "" [ref=e181] [cursor=pointer]:
+                  - /url: /admin/payment.php?action=setmod&token=eb6982284b9b77e644ca895977827501&value=mod_payment_ant
+                  - generic "Désactivé" [ref=e182]: 
+              - cell "" [ref=e183]:
+                - 'generic "Version: <b>20.0.4</b><br>Prochaine valeur: Module/Application non configuré<br>" [ref=e184]':
+                  - generic [ref=e185]: 
+        - table [ref=e186]:
+          - rowgroup [ref=e187]:
+            - row "Autres options" [ref=e188]:
+              - cell "Autres options" [ref=e189]:
+                - generic [ref=e190]: Autres options
+        - table [ref=e193]:
+          - rowgroup [ref=e194]:
+            - row "Paramètre Valeur" [ref=e195]:
+              - cell "Paramètre" [ref=e196]
+              - cell "Valeur" [ref=e197]
+              - cell [ref=e198]
+            - row "Autoriser le règlement de factures de différents tiers si ils ont la même maison-mère Non" [ref=e199]:
+              - cell "Autoriser le règlement de factures de différents tiers si ils ont la même maison-mère" [ref=e200]
+              - cell "Non" [ref=e201]:
+                - combobox [ref=e202]:
+                  - option "Oui"
+                  - option "Non" [selected]
+              - cell [ref=e203]
+            - row "Paiements groupés par mode sur les rapports Non" [ref=e204]:
+              - cell "Paiements groupés par mode sur les rapports" [ref=e205]
+              - cell "Non" [ref=e206]:
+                - combobox [ref=e207]:
+                  - option "Oui"
+                  - option "Non" [selected]
+              - cell [ref=e208]
+      - button "Modifier" [ref=e210] [cursor=pointer]
+  - log [ref=e211]
+  - log [ref=e212]
+  - log [ref=e213]
+  - log [ref=e214]
+  - log [ref=e215]
+  - log [ref=e216]
+  - log [ref=e217]
+  - log [ref=e218]
+  - log [ref=e219]
+  - log [ref=e220]
+  - log [ref=e221]

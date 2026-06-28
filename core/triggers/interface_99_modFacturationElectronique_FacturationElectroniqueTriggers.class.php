@@ -61,6 +61,9 @@ class InterfaceFacturationElectroniqueTriggers extends DolibarrTriggers
 		if (empty($conf->facturationelectronique->enabled)) {
 			return 0;
 		}
+		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
+			return 0;
+		}
 
 		// 1. Customer Payment Created (Sales Invoices / Outbound)
 		if ($action === 'PAYMENT_CUSTOMER_CREATE') {
