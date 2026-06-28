@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.5.0-alpha.6] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: block transmission on missing seller address, omit empty buyer address fields (#24) (8b87bcc) par benjaminmarchand
+
 ## [1.5.0-alpha.5] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
