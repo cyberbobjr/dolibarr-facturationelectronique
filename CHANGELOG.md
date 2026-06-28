@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.5.0-alpha.7] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: skip subtotal module title/section lines from EN16931 payload (issue #14 follow-up) (49c4125) par benjaminmarchand
+
 ## [1.5.0-alpha.6] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
