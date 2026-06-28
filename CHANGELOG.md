@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0-alpha.3] - 2026-06-28
+
+### 🐛 Corrections de Bugs
+- fix: strip pre-release suffix from zip filename for Dolibarr compatibility (60f13dc) par benjaminmarchand
+
 ## [1.4.0-alpha.2] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
