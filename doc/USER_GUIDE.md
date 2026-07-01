@@ -47,6 +47,18 @@ Cet écran répertorie les factures Dolibarr émises à destination de vos clien
 
 ![Factures Réseau Émises](images/outbound_list_page.png)
 
+### 3.1 Gestion automatique des remises et acomptes (lignes négatives)
+
+Dolibarr enregistre certaines opérations comme des **lignes de facture à montant négatif** : remises globales, déductions d'acompte, ou avoirs partiels intégrés. Or la norme européenne de facturation électronique **EN16931** interdit qu'une ligne de facture porte un prix négatif (règle **BR-27**, champ BT-146). Une facture contenant de telles lignes est donc **rejetée à la validation** par les plateformes.
+
+Le module gère ce cas automatiquement, sans action de votre part :
+
+*   Chaque ligne négative est convertie en **remise au niveau document** (bloc BG-20 de la norme), qui est la forme correcte pour une réduction globale.
+*   Les totaux sont recalculés séparément : somme des lignes positives (BT-106) d'un côté, somme des remises (BT-107) de l'autre, afin que le net à payer reste cohérent avec le contrôle effectué par la plateforme.
+*   **Cas limite** : si une facture ne contient *que* des lignes négatives (aucune ligne de prestation ou de produit positive), la transmission est bloquée avec un message explicite. Une facture entièrement négative doit en effet être émise sous la forme d'un **avoir** (voir la gestion des avoirs, qui référence automatiquement la facture d'origine conformément à la règle BR-55).
+
+> **En pratique** : vous pouvez transmettre normalement une facture comportant un acompte déduit ou une remise commerciale globale ; le module produit un Factur-X conforme là où un envoi brut serait refusé.
+
 ---
 
 ## 4. Intégration sur la Fiche Facture Client

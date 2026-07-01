@@ -29,6 +29,7 @@ Ce module permet de mettre en conformité Dolibarr avec la future réglementatio
    - Conversion automatique des factures clients validées au format certifié Factur-X (PDF avec XML embarqué).
    - Transmission sécurisée vers la plateforme PDP avec gestion des retours d'états et bandeau de notification.
    - **Validation pré-envoi** : le module vérifie que le SIREN de l'émetteur et du destinataire sont présents et composés exactement de 9 chiffres (détection automatique de la confusion SIREN/SIRET). L'envoi est bloqué avec un message d'erreur explicite en cas d'anomalie.
+   - **Normalisation EN16931 des lignes négatives** : Dolibarr encode les remises globales et les déductions d'acompte comme des lignes à montant négatif, que les plateformes rejettent (règle EN16931 **BR-27** : le prix d'une ligne ne peut être négatif). Le module convertit automatiquement ces lignes en **remises au niveau document** (BG-20 / BT-107) conformes à la norme, tout en recalculant séparément le total des lignes positives (BT-106) et des remises (BT-107). Si une facture ne contient *que* des lignes négatives (aucune ligne positive), l'envoi est bloqué proprement (règle **BR-16**) avec un message invitant à utiliser un avoir en bonne et due forme.
    - **Avertissement de routage PPF** (mode production) : si le tiers destinataire n'a pas encore été associé à son identifiant PEPPOL via l'annuaire, un bandeau d'alerte signale le risque de non-délivrance et propose de lancer la recherche d'association.
 
 3. **Factures Reçues (Achats)** :
