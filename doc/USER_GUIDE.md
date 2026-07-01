@@ -1,6 +1,6 @@
 # Guide de l'utilisateur - Module de Facturation Électronique B2B (France)
 
-Ce module permet d'intégrer Dolibarr avec les Plateformes de Dématérialisation Partenaires (PDP) telles que **SuperPDP** et **FactPulse**, afin de gérer l'envoi et la réception de factures électroniques au format standardisé (Factur-X) conformément à la réglementation française.
+Ce module permet d'intégrer Dolibarr avec la Plateforme de Dématérialisation Partenaire (PDP) agréée **SuperPDP**, afin de gérer l'envoi et la réception de factures électroniques au format standardisé (Factur-X) conformément à la réglementation française.
 
 ---
 
@@ -8,16 +8,13 @@ Ce module permet d'intégrer Dolibarr avec les Plateformes de Dématérialisatio
 
 La configuration générale du module s'effectue via l'interface d'administration de Dolibarr, sous **Configuration -> Modules/Applications**, puis en cliquant sur l'icône d'engrenage du module **Facturation Électronique**.
 
-### 1.1 Fournisseurs de service (PDP)
-Le module prend en charge plusieurs PDP. Le fournisseur actuellement actif est mis en évidence en haut de la page.
+### 1.1 Fournisseur de service (PDP)
+Le module s'appuie sur la PDP agréée **SuperPDP**, mise en évidence en haut de la page de configuration.
 
 *   **SuperPDP** :
     *   **Mode de fonctionnement** : Permet de basculer entre le mode *Bac à sable (Sandbox)* pour les tests et le mode *Production*.
     *   **Identifiants** : Renseignez l'**Identifiant Client (Client ID)** et le **Secret Client (Client Secret)** fournis par la plateforme.
     *   **Actions** : Vous pouvez sauvegarder vos modifications et cliquer sur **Tester la connexion** pour valider vos accès auprès de l'API SuperPDP.
-*   **FactPulse** :
-    *   Permet la connexion à l'aide d'un couple **Email de connexion (Username)** et **Mot de passe**.
-    *   Vous pouvez l'activer comme fournisseur principal via le bouton dédié.
 
 ### 1.2 Recherche SIREN Interactive
 Un outil de recherche est disponible dans l'onglet de configuration pour interroger directement l'**Annuaire National** à partir d'un numéro SIREN à 9 chiffres. Cela permet de vérifier la présence et les détails d'une entreprise avant toute transaction.
