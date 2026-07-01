@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.7.0-alpha.4] - 2026-07-01
+
+### 📝 Documentation
+- docs: document EN16931 negative-line handling (BG-20 allowances) (2dbabf3) par benjaminmarchand
+
 ## [1.7.0-alpha.3] - 2026-07-01
 
 ### 📝 Documentation
