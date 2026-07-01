@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.7.0-alpha.3] - 2026-07-01
+
+### 📝 Documentation
+- docs: remove FactPulse references from user guide (non-agréé DGFiP) (a997b04) par benjaminmarchand
+
 ## [1.7.0-alpha.2] - 2026-06-28
 
 ### 🐛 Corrections de Bugs
