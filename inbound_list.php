@@ -66,16 +66,24 @@ $sync_triggered = false;
 $sync_count = 0;
 $client_err_msg = '';
 
-// Handle selective sync action
+// Whether importing incoming supplier invoices is allowed. When disabled, the user
+// can only download the raw PDF/XML of each invoice instead of importing it.
+$allow_import = getDolGlobalInt('FACTURELECT_ALLOW_IMPORT', 1);
+
+// Handle selective sync action (guarded server-side by the allow-import setting)
 if ($action === 'sync_selected') {
-	$sync_triggered = true;
-	$import_ids = GETPOST('import_ids', 'array');
-	if (!empty($import_ids)) {
-		$sync_res = $client->syncIncomingInvoices($import_ids);
-		if ($sync_res !== false) {
-			$sync_count = $sync_res;
-		} else {
-			$client_err_msg = $client->error;
+	if (!$allow_import) {
+		setEventMessages($langs->trans("FacturelectImportDisabledError"), null, 'errors');
+	} else {
+		$sync_triggered = true;
+		$import_ids = GETPOST('import_ids', 'array');
+		if (!empty($import_ids)) {
+			$sync_res = $client->syncIncomingInvoices($import_ids);
+			if ($sync_res !== false) {
+				$sync_count = $sync_res;
+			} else {
+				$client_err_msg = $client->error;
+			}
 		}
 	}
 }
@@ -158,6 +166,11 @@ llxHeader('', $langs->trans("FacturelectInboundListTitle"), '', '', '', '', arra
 // Output container class for custom premium touches
 print '<div class="fe-container">';
 
+// Inform the user when import is disabled (download-only mode)
+if (!$allow_import) {
+	print '<div class="info">' . $langs->trans("FacturelectImportDisabledInfo") . '</div>';
+}
+
 // Title & Sync Result Alerts
 if ($sync_triggered) {
 	if ($sync_count !== false) {
@@ -173,6 +186,11 @@ print '<input type="hidden" name="action" value="list">';
 print '<input type="hidden" name="mainmenu" value="facturelect">';
 print '<input type="hidden" name="leftmenu" value="inbound">';
 
+// Explicit "fetch from SuperPDP" button. The list is already polled live on each load
+// (listIncomingInvoices → GET /invoices?direction=in), so this simply re-polls the provider.
+$refresh_url = $_SERVER["PHP_SELF"] . '?mainmenu=facturelect&leftmenu=inbound';
+$newcardbutton = dolGetButtonTitle($langs->trans("FacturelectRefreshInbound"), '', 'fa fa-sync', $refresh_url);
+
 // Native List Bar
 print_barre_liste(
 	$langs->trans("FacturelectInboundListTitle"),
@@ -186,7 +204,7 @@ print_barre_liste(
 	$num,
 	'bill',
 	0,
-	'',
+	$newcardbutton,
 	'',
 	$num,
 	0,
@@ -251,7 +269,11 @@ print '</tr>'."\n";
 
 // List Headers
 print '<tr class="liste_titre">';
-print '<th class="liste_titre" align="center" style="width: 30px;"><input type="checkbox" id="check-all-inbound" onclick="feToggleAllInbound(this)"></th>';
+if ($allow_import) {
+	print '<th class="liste_titre" align="center" style="width: 30px;"><input type="checkbox" id="check-all-inbound" onclick="feToggleAllInbound(this)"></th>';
+} else {
+	print '<th class="liste_titre" align="center" style="width: 30px;"></th>';
+}
 print_liste_field_titre('Réf. Facture', $_SERVER['PHP_SELF'], '', '', '', '', '', '');
 print_liste_field_titre('Fournisseur', $_SERVER['PHP_SELF'], '', '', '', '', '', '');
 print_liste_field_titre('SIREN', $_SERVER['PHP_SELF'], '', '', '', '', '', '');
@@ -313,12 +335,14 @@ if ($num > 0) {
 
 		print '<tr class="oddeven">';
 		
-		// Checkbox
+		// Selection cell (checkbox only when import is allowed)
 		if ($is_imported) {
 			print '  <td align="center"><span class="fa fa-check-circle" style="color: #22c55e;"></span></td>';
-		} else {
+		} elseif ($allow_import) {
 			$has_unimported = true;
 			print '  <td align="center"><input type="checkbox" class="inbound-checkbox" name="import_ids[]" value="' . $pdp_id . '"></td>';
+		} else {
+			print '  <td align="center">-</td>';
 		}
 
 		// Réf Facture
@@ -363,8 +387,9 @@ if ($num > 0) {
 			print '  <td align="center"><span class="fe-status-pill warning" style="font-size: 10px;">' . $langs->trans("FacturelectNotImported") . '</span></td>';
 		}
 
-		// Empty Action column
-		print '<td></td>';
+		// Action column — download the raw PDF/XML file received from the network
+		$dl_url = dol_buildpath('/facturationelectronique/download_inbound_invoice.php', 1) . '?id=' . urlencode($pdp_id);
+		print '<td align="center"><a class="fe-btn fe-btn-secondary fe-btn-sm" href="' . $dl_url . '"><span class="fa fa-download"></span> ' . $langs->trans("FacturelectDownloadPdf") . '</a></td>';
 
 		print '</tr>'."\n";
 	}
@@ -382,7 +407,7 @@ if ($num > 0) {
 print '</table>'."\n";
 print '</div>'."\n";
 
-if ($num > 0 && $has_unimported) {
+if ($num > 0 && $has_unimported && $allow_import) {
 	print '<div style="margin-top: 20px; text-align: left;">';
 	print '  <button type="button" class="fe-btn fe-btn-primary" onclick="submitImport()"><span class="fa fa-download"></span> Importer les factures sélectionnées</button>';
 	print '</div>';
