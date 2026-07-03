@@ -184,10 +184,25 @@ print '      <p style="margin: 3px 0 0 0; font-size:12px; color:#64748b;">Module
 print '    </div>';
 print '  </div>';
 
-// Active status badge
+// Active status badge — reflect the LIVE connection state on every page load, not only
+// right after an explicit "Test connection" click (issue #25: the badge wrongly showed
+// "Disconnected" whenever the user navigated away and came back, despite a valid session).
+if ($connection_tested) {
+	$is_connected = $connection_success;
+} else {
+	$creds_configured = ($mode === 'production')
+		? (!empty($prod_id) && !empty($prod_secret))
+		: (!empty($sandbox_id) && !empty($sandbox_secret));
+	$is_connected = false;
+	if ($creds_configured) {
+		$status_client = new FacturelectClient($db);
+		$is_connected = ($status_client->checkSession() !== false);
+	}
+}
+
 $status_class = 'disconnected';
 $status_label = $langs->trans("FacturelectStatusDisconnected");
-if ($connection_tested && $connection_success) {
+if ($is_connected) {
 	$status_class = 'connected';
 	$status_label = $langs->trans("FacturelectStatusConnected");
 }
