@@ -37,6 +37,17 @@ Cet écran répertorie toutes les factures fournisseurs disponibles sur le rése
 
 ![Factures Réseau Disponibles](images/inbound_list_with_menu.png)
 
+### 2.1 Récupération à la demande et mode « téléchargement seul »
+
+La liste est interrogée en direct auprès de la plateforme à chaque ouverture. Un bouton **« Récupérer les nouvelles factures »**, situé en haut à droite de la liste, permet de relancer cette interrogation à tout moment sans passer par la tâche planifiée.
+
+Un réglage **« Autoriser l'import des factures »** (dans la configuration du module) contrôle le comportement :
+
+*   **Import activé** (par défaut) : les factures sélectionnées sont créées comme brouillons de factures fournisseurs dans Dolibarr.
+*   **Import désactivé** (mode *téléchargement seul*) : aucune facture fournisseur n'est créée automatiquement — un bandeau d'information le rappelle — et un bouton compact **« Télécharger le PDF »** sur chaque ligne permet de récupérer le fichier PDF/XML original reçu. La tâche planifiée (cron) respecte également ce réglage et n'importe rien lorsqu'il est désactivé.
+
+![Bouton de récupération, mode téléchargement seul et boutons de téléchargement](images/inbound_refresh_download.png)
+
 ---
 
 ## 3. Gestion des Factures Émises (Ventes)
@@ -87,6 +98,36 @@ Cet onglet dédié sur la fiche facture permet d'accéder au détail technique d
     4.  *Rejetée* (`fr:213`) en cas d'erreur de validation.
 
 ![Onglet Facturation Électronique](images/invoice_facturelect_tab.png)
+
+### 4.4 Exonérations de TVA (mentions VATEX)
+
+Lorsqu'une facture comporte des lignes **sans TVA**, la norme EN16931 exige, en plus du taux à 0 %, un **motif d'exonération** : un code normalisé issu de la liste **VATEX** (champ BT-121) et son libellé légal (champ BT-120). En leur absence, la plateforme rejette la facture avec l'erreur *« Value of ram:ExemptionReasonCode is not allowed »*.
+
+Le module gère ces mentions automatiquement. L'onglet **Facturation Électronique** de la facture affiche un récapitulatif des mentions qui seront transmises, regroupées par catégorie de TVA :
+
+![Mentions VATEX transmises](images/vatex_exemption_tab.png)
+
+Les correspondances automatiques appliquées selon la catégorie de TVA de chaque ligne sont :
+
+| Cas | Catégorie | Code VATEX attribué |
+| --- | --- | --- |
+| Autoliquidation | `AE` | `VATEX-EU-AE` |
+| Exportation hors UE | `G` | `VATEX-EU-G` |
+| Livraison intracommunautaire | `K` | `VATEX-EU-IC` |
+| Hors champ de la TVA | `O` | `VATEX-EU-O` |
+| Franchise en base / exonération | `E` | `VATEX-FR-FRANCHISE` |
+
+#### Personnalisation du code
+
+Pour les cas particuliers (exonération médicale, régime spécifique…), vous pouvez **surcharger** le code par facture ou par tiers via le champ **« Code exonération TVA (VATEX) »** des attributs complémentaires. Ce champ est une **liste déroulante** des codes VATEX officiels accompagnés de leur description, ce qui évite toute erreur de saisie :
+
+![Liste déroulante des codes VATEX](images/vatex_code_dropdown.png)
+
+> **Motif automatique** : si vous choisissez un code sans renseigner de texte, le module utilise automatiquement la description du code comme motif légal (BT-120). La liste est donc auto-suffisante.
+
+> **Limite à connaître** : une valeur personnalisée s'applique à **toutes** les lignes exonérées de la facture. Si une facture mélange plusieurs régimes d'exonération (par exemple une ligne à l'export *et* une ligne intracommunautaire), un bandeau d'alerte ambre vous invite à vider le champ pour laisser le mapping automatique attribuer un code distinct à chaque catégorie :
+
+![Alerte code personnalisé multi-régime](images/vatex_override_warning.png)
 
 ---
 
