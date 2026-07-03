@@ -189,7 +189,7 @@ print '<input type="hidden" name="leftmenu" value="inbound">';
 // Explicit "fetch from SuperPDP" button. The list is already polled live on each load
 // (listIncomingInvoices → GET /invoices?direction=in), so this simply re-polls the provider.
 $refresh_url = $_SERVER["PHP_SELF"] . '?mainmenu=facturelect&leftmenu=inbound';
-$newcardbutton = dolGetButtonTitle($langs->trans("FacturelectRefreshInbound"), '', 'fa fa-sync', $refresh_url);
+$newcardbutton = '<a class="fe-btn fe-btn-secondary fe-btn-sm" href="' . $refresh_url . '"><span class="fa fa-sync"></span> ' . $langs->trans("FacturelectRefreshInbound") . '</a>';
 
 // Native List Bar
 print_barre_liste(
