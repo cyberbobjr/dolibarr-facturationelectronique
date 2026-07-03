@@ -6,6 +6,22 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.8.0-alpha.1] - 2026-07-03
+
+### ✨ Nouvelles Fonctionnalités
+- feat(vatex): handle EN16931 VAT exemption reason codes (BT-120/BT-121) (d29f44c) par benjaminmarchand
+- feat(inbound): guard import UI, add refresh and compact download buttons (9cb97c4) par benjaminmarchand
+- feat(inbound): add PDF/XML download and import toggle for incoming invoices (d974fd1) par benjaminmarchand
+
+### 🐛 Corrections de Bugs
+- fix(inbound): use a labeled compact button for the refresh action (dcdba8e) par benjaminmarchand
+
+### 📝 Documentation
+- docs: document VATEX exemptions and inbound features with screenshots (069e0bd) par benjaminmarchand
+
+### 🔧 Maintenance & Refactoring
+- i18n: add FR/EN strings for inbound download, refresh and VATEX exemptions (dfc9b47) par benjaminmarchand
+
 ## [1.7.0-alpha.4] - 2026-07-01
 
 ### 📝 Documentation
