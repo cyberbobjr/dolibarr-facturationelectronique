@@ -271,6 +271,9 @@ class modFacturationElectronique extends DolibarrModules
 
 		// Add extrafields for thirdparties and invoices
 		require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+		if (!class_exists('VatexMapper')) {
+			require_once dirname(__FILE__) . '/../../class/vatexmapper.class.php';
+		}
 		$extrafields = new ExtraFields($this->db);
 
 		// 1. Third-party extrafields
@@ -354,6 +357,46 @@ class modFacturationElectronique extends DolibarrModules
 			'facturation_electronique@facturationelectronique'
 		);
 
+		$extrafields->addExtraField(
+			'facturelect_vatex_code',
+			'FacturelectVatexCodeLabel',
+			'select',
+			105,
+			20,
+			'thirdparty',
+			0,
+			0,
+			'',
+			array('options' => VatexMapper::selectOptions()),
+			1,
+			'',
+			'-1',
+			'FacturelectVatexCodeHelp',
+			'',
+			'',
+			'facturation_electronique@facturationelectronique'
+		);
+
+		$extrafields->addExtraField(
+			'facturelect_vatex_reason',
+			'FacturelectVatexReasonLabel',
+			'varchar',
+			106,
+			255,
+			'thirdparty',
+			0,
+			0,
+			'',
+			'',
+			1,
+			'',
+			'-1',
+			'FacturelectVatexReasonHelp',
+			'',
+			'',
+			'facturation_electronique@facturationelectronique'
+		);
+
 		// 2. Customer invoice extrafields
 		$extrafields->addExtraField(
 			'facturelect_invoice_id',
@@ -410,6 +453,46 @@ class modFacturationElectronique extends DolibarrModules
 			'',
 			'-1',
 			'Transmission date to SuperPDP',
+			'',
+			'',
+			'facturation_electronique@facturationelectronique'
+		);
+
+		$extrafields->addExtraField(
+			'facturelect_vatex_code',
+			'FacturelectVatexCodeLabel',
+			'select',
+			104,
+			20,
+			'facture',
+			0,
+			0,
+			'',
+			array('options' => VatexMapper::selectOptions()),
+			1,
+			'',
+			'-1',
+			'FacturelectVatexCodeHelp',
+			'',
+			'',
+			'facturation_electronique@facturationelectronique'
+		);
+
+		$extrafields->addExtraField(
+			'facturelect_vatex_reason',
+			'FacturelectVatexReasonLabel',
+			'varchar',
+			105,
+			255,
+			'facture',
+			0,
+			0,
+			'',
+			'',
+			1,
+			'',
+			'-1',
+			'FacturelectVatexReasonHelp',
 			'',
 			'',
 			'facturation_electronique@facturationelectronique'

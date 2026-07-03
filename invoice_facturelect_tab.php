@@ -161,6 +161,89 @@ if (empty($pdp_id)) {
 }
 
 print '    </div>';
+
+// VAT exemption (VATEX) contextual help — customer invoices carrying exempt lines only.
+// Shows the exact BT-120/BT-121 mentions that will be transmitted, plus how to override them.
+if (!$is_supplier) {
+	if (!class_exists('ActionsFacturationelectronique')) {
+		require_once './class/actions_facturationelectronique.class.php';
+	}
+	if (!class_exists('VatexMapper')) {
+		require_once './class/vatexmapper.class.php';
+	}
+	if (empty($object->thirdparty)) {
+		$object->fetch_thirdparty();
+	}
+	if (!empty($object->thirdparty) && empty($object->thirdparty->array_options)) {
+		$object->thirdparty->fetch_optionals();
+	}
+	if (empty($object->lines)) {
+		$object->fetch_lines();
+	}
+
+	$feActions = new ActionsFacturationelectronique($db);
+	$exempt_categories = array();
+	if (!empty($object->lines)) {
+		foreach ($object->lines as $line) {
+			if (!empty($line->special_code)) {
+				continue;
+			}
+			if ((int) $line->product_type >= 9 && floatval($line->total_ht) == 0 && floatval($line->total_tva) == 0) {
+				continue;
+			}
+			$cat = $feActions->resolveVatCategoryCode(floatval($line->tva_tx), (int) ($line->info_bits ?? 0), $line->vat_src_code ?? '');
+			if (VatexMapper::isExemptCategory($cat)) {
+				$exempt_categories[$cat] = true;
+			}
+		}
+	}
+
+	if (!empty($exempt_categories)) {
+		$override_active = !empty($object->array_options['options_facturelect_vatex_code'])
+			|| (!empty($object->thirdparty) && !empty($object->thirdparty->array_options['options_facturelect_vatex_code']));
+
+		print '    <div class="fe-card" style="background:#fff; border:1px solid #cbd5e1; border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05); font-family:\'Outfit\', \'Inter\', sans-serif;">';
+		print '      <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:700; color:#0f172a; border-bottom:1px solid #e2e8f0; padding-bottom:8px; display:flex; align-items:center; gap:8px;">';
+		print '        <span class="fa fa-percent" style="color:#0284c7; font-size:18px;"></span> ' . $langs->trans("FacturelectVatexHelpTitle");
+		print '      </h3>';
+		print '      <p style="margin:0 0 12px 0; font-size:12px; color:#64748b; line-height:1.5;">' . $langs->trans("FacturelectVatexHelpIntro") . '</p>';
+
+		print '      <table style="width:100%; border-collapse:collapse; font-size:12px; color:#334155;">';
+		print '        <tr style="border-bottom:1px solid #e2e8f0; text-align:left; color:#475569;">';
+		print '          <th style="padding:6px 8px 6px 0; font-weight:600;">' . $langs->trans("FacturelectVatexColCategory") . '</th>';
+		print '          <th style="padding:6px 8px; font-weight:600;">' . $langs->trans("FacturelectVatexColCode") . '</th>';
+		print '          <th style="padding:6px 0; font-weight:600;">' . $langs->trans("FacturelectVatexColReason") . '</th>';
+		print '        </tr>';
+		foreach (array_keys($exempt_categories) as $cat) {
+			$exemption = $feActions->resolveVatExemption($cat, $object);
+			$cat_label = $langs->trans("FacturelectVatexCat_" . $cat);
+			print '        <tr style="border-bottom:1px solid #f1f5f9;">';
+			print '          <td style="padding:8px 8px 8px 0; white-space:nowrap;"><code style="background:#f1f5f9; padding:2px 6px; border-radius:5px; font-weight:700; color:#0f172a;">' . dol_escape_htmltag($cat) . '</code> <span style="color:#64748b;">' . dol_escape_htmltag($cat_label) . '</span></td>';
+			print '          <td style="padding:8px;"><code style="background:#ecfdf5; color:#047857; padding:2px 6px; border-radius:5px; font-weight:700;">' . dol_escape_htmltag($exemption['reason_code']) . '</code></td>';
+			print '          <td style="padding:8px 0; color:#475569;">' . dol_escape_htmltag($exemption['reason']) . '</td>';
+			print '        </tr>';
+		}
+		print '      </table>';
+
+		if ($override_active && count($exempt_categories) > 1) {
+			// Single-regime override "steamroller": one forced code applied to several exempt
+			// categories at once is almost certainly wrong. Warn explicitly (see AGENTS.md #50).
+			print '      <div style="margin-top:12px; padding:8px 12px; background:#fffbeb; border-left:4px solid #f59e0b; border-radius:6px; font-size:12px; color:#92400e; line-height:1.5;">';
+			print '        <span class="fa fa-exclamation-triangle"></span> ' . $langs->trans("FacturelectVatexOverrideMultiWarning");
+			print '      </div>';
+		} elseif ($override_active) {
+			print '      <div style="margin-top:12px; padding:8px 12px; background:#f0f9ff; border-left:4px solid #0284c7; border-radius:6px; font-size:12px; color:#075985;">';
+			print '        <span class="fa fa-check-circle"></span> ' . $langs->trans("FacturelectVatexOverrideActive");
+			print '      </div>';
+		} else {
+			print '      <div style="margin-top:12px; padding:8px 12px; background:#f8fafc; border-left:4px solid #cbd5e1; border-radius:6px; font-size:12px; color:#64748b; line-height:1.5;">';
+			print '        <span class="fa fa-lightbulb" style="color:#f59e0b;"></span> ' . $langs->trans("FacturelectVatexOverrideHint");
+			print '      </div>';
+		}
+		print '    </div>';
+	}
+}
+
 print '  </div>'; // End Left Half
 
 print '  <div class="fichehalfright">';

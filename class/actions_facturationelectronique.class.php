@@ -25,6 +25,9 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/commonhookactions.class.php';
 if (!class_exists('FacturelectClient')) {
 	require_once dirname(__FILE__) . '/facturelectclient.class.php';
 }
+if (!class_exists('VatexMapper')) {
+	require_once dirname(__FILE__) . '/vatexmapper.class.php';
+}
 
 /**
  *	Class ActionsFacturationElectronique
@@ -843,6 +846,15 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$object->fetch_lines();
 		}
 
+		// Invoice extrafields (per-invoice VATEX override, statuses…) may not be loaded yet.
+		if (empty($object->array_options)) {
+			$object->fetch_optionals();
+		}
+		// Third-party extrafields (routing id, per-client VATEX default…) are read below.
+		if (!empty($object->thirdparty) && empty($object->thirdparty->array_options)) {
+			$object->thirdparty->fetch_optionals();
+		}
+
 		$clean_buyer_siren = preg_replace('/\s+/', '', $object->thirdparty->idprof1);
 		if (empty($clean_buyer_siren)) {
 			$client = new FacturelectClient($this->db);
@@ -989,12 +1001,20 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		foreach ($vat_details as $amounts) {
-			$vat_breakdowns[] = array(
+			$breakdown = array(
 				'vat_category_taxable_amount' => sprintf("%.2f", $amounts['taxable_amount']),
 				'vat_category_tax_amount' => sprintf("%.2f", $amounts['tax_amount']),
 				'vat_category_code' => $amounts['cat_code'],
 				'vat_category_rate' => $amounts['rate']
 			);
+			// BR-E-10/BR-G-10/BR-IC-10/BR-O-10/BR-AE-10: exempt categories SHALL carry a
+			// VAT exemption reason code (BT-121, VATEX list) and/or reason text (BT-120).
+			$exemption = $this->resolveVatExemption($amounts['cat_code'], $object);
+			if ($exemption !== null) {
+				$breakdown['vat_exemption_reason_code'] = $exemption['reason_code'];
+				$breakdown['vat_exemption_reason'] = $exemption['reason'];
+			}
+			$vat_breakdowns[] = $breakdown;
 		}
 
 		// Retrieve client routing details from third party extrafields
@@ -1362,7 +1382,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 * @param  string $vat_src_code Dolibarr VAT source code from llx_c_tva
 	 * @return string               EN16931 VAT category code
 	 */
-	private function resolveVatCategoryCode($vat_rate, $info_bits = 0, $vat_src_code = '')
+	public function resolveVatCategoryCode($vat_rate, $info_bits = 0, $vat_src_code = '')
 	{
 		if ($vat_rate > 0) {
 			return 'S';
@@ -1378,6 +1398,60 @@ class ActionsFacturationelectronique extends CommonHookActions
 			return 'O';
 		}
 		return 'E';
+	}
+
+	/**
+	 * Resolve the VAT exemption reason (BT-120 text / BT-121 VATEX code) for a breakdown bucket.
+	 *
+	 * Applies only to exempt / out-of-scope / reverse-charge categories (E, G, K, O, AE).
+	 * Resolution priority:
+	 *   1. Invoice extrafield override (facturelect_vatex_code / facturelect_vatex_reason)
+	 *   2. Third-party extrafield override (per-client default)
+	 *   3. Category default from VatexMapper (standard French legal wording)
+	 *
+	 * LIMITATION — single-regime override: an override (invoice or third party) is a single
+	 * code+reason pair applied to EVERY exempt breakdown bucket of the invoice. It is meant for
+	 * the common case where an invoice carries one exemption regime. On an invoice that mixes
+	 * several exempt categories (e.g. a G export line AND a K intra-community line), the override
+	 * stamps the same VATEX code on both buckets, which is incorrect. For mixed-regime invoices,
+	 * leave the override empty and rely on the per-category automatic mapping.
+	 *
+	 * @param  string       $cat_code  EN16931 VAT category code for the bucket
+	 * @param  CommonObject $object    The invoice object (carries array_options and thirdparty)
+	 * @return array|null              array('reason_code' => …, 'reason' => …) or null when no exemption applies
+	 */
+	public function resolveVatExemption($cat_code, $object)
+	{
+		if (!VatexMapper::isExemptCategory($cat_code)) {
+			return null;
+		}
+
+		$default = VatexMapper::getDefaultExemption($cat_code);
+		$code = $default['reason_code'];
+		$reason = $default['reason'];
+
+		$invoice_opts = is_object($object) && !empty($object->array_options) ? $object->array_options : array();
+		$tp_opts = is_object($object) && !empty($object->thirdparty) && !empty($object->thirdparty->array_options)
+			? $object->thirdparty->array_options : array();
+
+		if (!empty($invoice_opts['options_facturelect_vatex_code'])) {
+			$code = trim($invoice_opts['options_facturelect_vatex_code']);
+			if (!empty($invoice_opts['options_facturelect_vatex_reason'])) {
+				$reason = trim($invoice_opts['options_facturelect_vatex_reason']);
+			} else {
+				// No custom text: use the picked code's own description as BT-120 reason.
+				$reason = VatexMapper::labelForCode($code) ?: $reason;
+			}
+		} elseif (!empty($tp_opts['options_facturelect_vatex_code'])) {
+			$code = trim($tp_opts['options_facturelect_vatex_code']);
+			if (!empty($tp_opts['options_facturelect_vatex_reason'])) {
+				$reason = trim($tp_opts['options_facturelect_vatex_reason']);
+			} else {
+				$reason = VatexMapper::labelForCode($code) ?: $reason;
+			}
+		}
+
+		return array('reason_code' => $code, 'reason' => $reason);
 	}
 
 	/**
