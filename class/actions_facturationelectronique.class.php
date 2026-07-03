@@ -45,6 +45,13 @@ class ActionsFacturationelectronique extends CommonHookActions
 	public $error = '';
 
 	/**
+	 * @var string HTML (CSS <link> and <script> blocks) deferred from addMoreActionsButtons
+	 *             to printCommonFooter. Emitting scripts inside the action-buttons bar breaks
+	 *             Dolibarr V24's button-collapsing, so they are output in the page footer instead.
+	 */
+	private $deferredFooterHtml = '';
+
+	/**
 	 * Constructor
 	 *
 	 * @param	DoliDB	$db		Database handler
@@ -289,8 +296,8 @@ class ActionsFacturationelectronique extends CommonHookActions
 				return 0;
 			}
 
-			// Ensure CSS is loaded
-			echo '<link rel="stylesheet" type="text/css" href="' . $this->getCssUrl() . '">';
+			// Ensure CSS is loaded (deferred to the footer, see $deferredFooterHtml)
+			$this->deferredFooterHtml .= '<link rel="stylesheet" type="text/css" href="' . $this->getCssUrl() . '">';
 
 			$client = new FacturelectClient($this->db);
 			$provider_name = $client->getProviderName();
@@ -305,7 +312,10 @@ class ActionsFacturationelectronique extends CommonHookActions
 				echo '</a>';
 			}
 
-			// Add JavaScript for modern real-time visual alerts and dynamic updates
+			// Add JavaScript for modern real-time visual alerts and dynamic updates.
+			// Captured with output buffering and deferred to printCommonFooter (never emitted
+			// inside the action-buttons bar, which breaks Dolibarr V24's button layout).
+			ob_start();
 			?>
 			<script type="text/javascript">
 				console.log("Script facturationelectronique.class.php loaded globally");
@@ -599,12 +609,13 @@ class ActionsFacturationelectronique extends CommonHookActions
 				}
 			</script>
 			<?php
+			$this->deferredFooterHtml .= ob_get_clean();
 		}
 
 		// 2. Customer Invoice Card — Transmission feature (banner + action buttons)
 		if ($feat_einvoicing && $parameters['currentcontext'] === 'invoicecard') {
-			// Ensure CSS is loaded
-			echo '<link rel="stylesheet" type="text/css" href="' . $this->getCssUrl() . '">';
+			// Ensure CSS is loaded (deferred to the footer, see $deferredFooterHtml)
+			$this->deferredFooterHtml .= '<link rel="stylesheet" type="text/css" href="' . $this->getCssUrl() . '">';
 
 			if (method_exists($object, 'fetch_optionals') && empty($object->array_options)) {
 				$object->fetch_optionals();
@@ -767,7 +778,8 @@ class ActionsFacturationelectronique extends CommonHookActions
 				}
 			}
 
-			// Dynamic JS Injection of the Banner
+			// Dynamic JS Injection of the Banner (deferred to the footer via output buffering)
+			ob_start();
 			?>
 			<script type="text/javascript">
 				(function() {
@@ -789,6 +801,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 				})();
 			</script>
 			<?php
+			$this->deferredFooterHtml .= ob_get_clean();
 
 			// Standard Actions Bar Button (only when validated/paid)
 			if ($object->statut == 1 || $object->statut == 2) {
@@ -823,6 +836,31 @@ class ActionsFacturationelectronique extends CommonHookActions
 			}
 		}
 
+		return 0;
+	}
+
+	/**
+	 * Output, in the page footer, the CSS <link> and <script> blocks accumulated by
+	 * addMoreActionsButtons. Emitting them inside the action-buttons bar (.tabsAction)
+	 * breaks Dolibarr V24's button-collapsing logic and truncates the page; the footer
+	 * is a neutral location that works across all Dolibarr versions.
+	 *
+	 * The HookManager reuses the same action-class instance for every hook of a page, and
+	 * addMoreActionsButtons (body) always runs before printCommonFooter (llxFooter), so the
+	 * deferred HTML is guaranteed to be populated by the time this hook fires.
+	 *
+	 * @param   array           $parameters     Hook metadatas
+	 * @param   CommonObject    $object         Current object
+	 * @param   string          $action         Current action
+	 * @param   HookManager     $hookmanager    Hook manager
+	 * @return  int                             0
+	 */
+	public function printCommonFooter($parameters, &$object, &$action, $hookmanager)
+	{
+		if (!empty($this->deferredFooterHtml)) {
+			echo $this->deferredFooterHtml;
+			$this->deferredFooterHtml = '';
+		}
 		return 0;
 	}
 
