@@ -74,6 +74,14 @@ interface FacturelectProvider
 	public function syncIncomingInvoices($specific_ids = null);
 
 	/**
+	 * Download the raw invoice file (PDF or XML) from the provider
+	 *
+	 * @param	string	$pdp_id		PDP Technical ID
+	 * @return	string|bool			Raw file content (binary) or false on error
+	 */
+	public function downloadInvoiceFile($pdp_id);
+
+	/**
 	 * Get the display name of the provider
 	 *
 	 * @return	string							Provider display name

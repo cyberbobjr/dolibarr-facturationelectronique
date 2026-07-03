@@ -267,6 +267,17 @@ class FacturelectClient
 	}
 
 	/**
+	 * Download the raw invoice file (PDF/XML) of an incoming invoice
+	 *
+	 * @param	string		$pdp_id		PDP Technical ID of the invoice
+	 * @return	string|bool				Raw binary file content or false on error
+	 */
+	public function downloadInvoiceFile($pdp_id)
+	{
+		return $this->provider->downloadInvoiceFile($pdp_id);
+	}
+
+	/**
 	 * Method executed by cron job to pull incoming invoices
 	 *
 	 * @return	int		0 if OK, <0 if KO
@@ -274,6 +285,14 @@ class FacturelectClient
 	public function syncIncomingInvoicesCron()
 	{
 		dol_syslog("FacturelectClient::syncIncomingInvoicesCron started", LOG_DEBUG);
+
+		// Respect the "Allow invoice import" setting: when disabled, the cron must not
+		// auto-import supplier invoices (users download the PDF from the inbound list instead).
+		if (!getDolGlobalInt('FACTURELECT_ALLOW_IMPORT', 1)) {
+			dol_syslog("FacturelectClient::syncIncomingInvoicesCron skipped: import disabled (FACTURELECT_ALLOW_IMPORT=0)", LOG_INFO);
+			return 0;
+		}
+
 		$result = $this->syncIncomingInvoices();
 		if ($result === false) {
 			dol_syslog("FacturelectClient::syncIncomingInvoicesCron error", LOG_ERR);

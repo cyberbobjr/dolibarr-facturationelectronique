@@ -82,9 +82,11 @@ if ($action === 'activate_provider') {
 if ($action === 'update_features') {
 	$feat_einvoicing = GETPOSTINT('feat_einvoicing') ? 1 : 0;
 	$feat_siren = GETPOSTINT('feat_siren') ? 1 : 0;
+	$feat_allow_import = GETPOSTINT('feat_allow_import') ? 1 : 0;
 	$r1 = dolibarr_set_const($db, 'FACTURELECT_FEATURE_EINVOICING', $feat_einvoicing, 'chaine', 0, 'Enable electronic invoice transmission feature', $conf->entity);
 	$r2 = dolibarr_set_const($db, 'FACTURELECT_FEATURE_SIREN', $feat_siren, 'chaine', 0, 'Enable SIREN directory management feature', $conf->entity);
-	if ($r1 >= 0 && $r2 >= 0) {
+	$r3 = dolibarr_set_const($db, 'FACTURELECT_ALLOW_IMPORT', $feat_allow_import, 'chaine', 0, 'Allow importing incoming supplier invoices (else PDF download only)', $conf->entity);
+	if ($r1 >= 0 && $r2 >= 0 && $r3 >= 0) {
 		setEventMessages("Fonctionnalités mises à jour.", null, 'mesgs');
 	} else {
 		setEventMessages($langs->trans("ErrorFailedToSave"), null, 'errors');
@@ -113,6 +115,11 @@ if ($action === 'test_conn') {
 // Perform manual synchronization of incoming invoices
 $sync_triggered = false;
 $sync_count = 0;
+if ($action === 'sync_selected' && !getDolGlobalInt('FACTURELECT_ALLOW_IMPORT', 1)) {
+	// Import is disabled: block the server-side action even if the request was crafted manually.
+	setEventMessages($langs->trans("FacturelectImportDisabledError"), null, 'errors');
+	$action = '';
+}
 if ($action === 'sync_selected') {
 	$sync_triggered = true;
 	$import_ids = GETPOST('import_ids', 'array');
@@ -132,6 +139,7 @@ if ($action === 'sync_selected') {
 // Retrieve saved values
 $feat_einvoicing = getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1);
 $feat_siren = getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1);
+$feat_allow_import = getDolGlobalInt('FACTURELECT_ALLOW_IMPORT', 1);
 $mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE');
 if (empty($mode)) {
 	$mode = 'sandbox'; // Default to sandbox
@@ -266,6 +274,16 @@ print '        <input type="checkbox" name="feat_siren" value="1" ' . ($f2_on ? 
 print '        <div>';
 print '          <strong style="color:#1e293b;"><span class="fa fa-search" style="color:#10b981; margin-right:6px;"></span>Gestion SIREN &amp; Annuaire</strong>';
 print '          <p style="margin:4px 0 0; font-size:12px; color:#64748b;">Recherche et vérification SIREN des tiers dans l\'annuaire national, détection des SIREN manquants/incorrects, enrichissement des coordonnées, bouton de vérification sur les fiches tiers.</p>';
+print '        </div>';
+print '      </label>';
+
+// Feature 3 — Allow import of incoming supplier invoices
+$f3_on = (int) $feat_allow_import;
+print '      <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding:12px; border-radius:8px; border:1px solid ' . ($f3_on ? '#10b981' : '#e2e8f0') . '; background:' . ($f3_on ? '#f0fdf4' : '#f8fafc') . ';">';
+print '        <input type="checkbox" name="feat_allow_import" value="1" ' . ($f3_on ? 'checked' : '') . ' style="margin-top:2px; width:16px; height:16px;">';
+print '        <div>';
+print '          <strong style="color:#1e293b;"><span class="fa fa-file-import" style="color:#10b981; margin-right:6px;"></span>' . $langs->trans("FacturelectFeatureAllowImport") . '</strong>';
+print '          <p style="margin:4px 0 0; font-size:12px; color:#64748b;">' . $langs->trans("FacturelectFeatureAllowImportDesc") . '</p>';
 print '        </div>';
 print '      </label>';
 
