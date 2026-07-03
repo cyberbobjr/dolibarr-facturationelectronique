@@ -6,6 +6,12 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.8.0-alpha.2] - 2026-07-03
+
+### 🐛 Corrections de Bugs
+- fix(setup): show live connection status on every page load (4cfb4b1) par benjaminmarchand
+- fix(invoice): defer hook scripts to printCommonFooter for Dolibarr V24 (b1b9d6b) par benjaminmarchand
+
 ## [1.8.0-alpha.1] - 2026-07-03
 
 ### ✨ Nouvelles Fonctionnalités
