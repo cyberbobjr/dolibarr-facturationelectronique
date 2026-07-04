@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.8.0-alpha.3] - 2026-07-04
+
+### 🐛 Corrections de Bugs
+- fix: skip SIREN error for B2C private-individual customers (#27) (5395100) par benjaminmarchand
+
 ## [1.8.0-alpha.2] - 2026-07-03
 
 ### 🐛 Corrections de Bugs
