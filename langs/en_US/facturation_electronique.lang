@@ -114,4 +114,10 @@ FacturelectVatexCat_K=Intra-community supply
 FacturelectVatexCat_O=Outside scope of VAT
 FacturelectVatexCat_E=Exempt / small-business franchise
 
+# B2C — private individual thirdparty (no SIREN, out of scope of B2B e-invoicing)
+FacturelectB2cLabel=Private individual (B2C)
+FacturelectB2cHelp=Tick if this third party is a private individual (B2C). A private individual has no SIREN and is out of scope of B2B e-invoicing (SIREN routing): the module then hides the SIREN error and its button. Automatically detected when the third party's nature is "Private individual".
+FacturelectB2cNoteTitle=Private individual (B2C)
+FacturelectB2cNoteBody=This customer is a private individual: they have no SIREN and are out of scope of B2B e-invoicing (SIREN routing). This kind of transaction falls under e-reporting.
+
 

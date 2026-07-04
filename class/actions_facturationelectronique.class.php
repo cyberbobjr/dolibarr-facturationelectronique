@@ -28,6 +28,9 @@ if (!class_exists('FacturelectClient')) {
 if (!class_exists('VatexMapper')) {
 	require_once dirname(__FILE__) . '/vatexmapper.class.php';
 }
+if (!class_exists('FacturelectB2cResolver')) {
+	require_once dirname(__FILE__) . '/b2cresolver.class.php';
+}
 
 /**
  *	Class ActionsFacturationElectronique
@@ -638,19 +641,40 @@ class ActionsFacturationelectronique extends CommonHookActions
 			global $mysoc;
 			$seller_siren = preg_replace('/\s+/', '', $mysoc->idprof1);
 
-			// Validate SIREN formats (exactly 9 digits required or empty)
+			// Load the buyer extrafields early: needed both for the B2C override and PEPPOL association below.
+			if (empty($object->thirdparty->array_options)) {
+				$object->thirdparty->fetch_optionals();
+			}
+
+			// A private individual (B2C) has no SIREN and is out of scope of B2B e-invoicing (issue #27).
+			// Detected via the native Dolibarr "Particulier" nature (TE_PRIVATE) or the explicit override checkbox.
+			$is_b2c = FacturelectB2cResolver::isB2c(
+				$object->thirdparty->typent_code,
+				isset($object->thirdparty->array_options['options_facturelect_b2c']) ? $object->thirdparty->array_options['options_facturelect_b2c'] : null
+			);
+
+			// Validate SIREN formats (exactly 9 digits required or empty).
+			// The seller SIREN is always required; the buyer SIREN is only an error for B2B customers.
 			$seller_siren_invalid = empty($seller_siren) || (strlen($seller_siren) !== 9 || !ctype_digit($seller_siren));
-			$buyer_siren_invalid = empty($buyer_siren) || (strlen($buyer_siren) !== 9 || !ctype_digit($buyer_siren));
+			$buyer_siren_invalid = FacturelectB2cResolver::isBuyerSirenInvalid($buyer_siren, $is_b2c);
 
 			// Check buyer PEPPOL routing association (facturelect_id extrafield)
 			// In production: empty facturelect_id means routing falls back to raw SIREN — buyer may not be registered in PPF
 			// In sandbox: SIREN always gets the sandbox prefix automatically, so no risk
-			if (empty($object->thirdparty->array_options)) {
-				$object->thirdparty->fetch_optionals();
-			}
 			$buyer_facturelect_id = !empty($object->thirdparty->array_options['options_facturelect_id']) ? $object->thirdparty->array_options['options_facturelect_id'] : '';
 			$fe_mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE');
-			$buyer_not_associated = empty($buyer_facturelect_id) && $fe_mode === 'production';
+			// A B2C customer is never routed by SIREN, so the "not associated to the directory" warning does not apply.
+			$buyer_not_associated = empty($buyer_facturelect_id) && $fe_mode === 'production' && !$is_b2c;
+
+			// Neutral note shown instead of a SIREN error when the customer is a private individual (B2C).
+			$b2c_note_html = '';
+			if ($is_b2c) {
+				$b2c_note_html .= '<div class="fe-alert fe-alert-info fe-invoice-b2c-note" style="margin-bottom:10px; display:flex; align-items:flex-start; gap:10px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px;">';
+				$b2c_note_html .= '<span class="fa fa-info-circle" style="color:#3b82f6; font-size:20px; margin-top:2px; flex-shrink:0;"></span>';
+				$b2c_note_html .= '<div><strong style="color:#1e40af;">'.$langs->trans('FacturelectB2cNoteTitle').'</strong><br/>';
+				$b2c_note_html .= $langs->trans('FacturelectB2cNoteBody');
+				$b2c_note_html .= '</div></div>';
+			}
 
 			// Build warning banner (non-blocking) for missing PEPPOL association in production
 			$warning_html = '';
@@ -718,14 +742,14 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$banner_html = '';
 			if ($object->statut == 0) {
 				// Draft
-				$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
+				$banner_html = $b2c_note_html . $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
 				$banner_html .= '<span class="fa fa-info-circle" style="font-size: 20px; margin-top: 2px;"></span>';
 				$banner_html .= '<div><strong>Facturation Électronique (B2B)</strong><br/>';
 				$banner_html .= 'Cette facture est actuellement à l\'état de <strong>Brouillon</strong>. Veuillez valider la facture pour l\'envoyer électroniquement via ' . dol_escape_htmltag($provider_name) . '.</div>';
 				$banner_html .= '</div>';
 			} else {
 				if ($pdp_status === 'transmitted') {
-					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-success fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $b2c_note_html . $config_error_html . $warning_html . '<div class="fe-alert fe-alert-success fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-check-circle" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Facture transmise avec succès au PDP</strong><br/>';
 					$banner_html .= 'Cette facture a été convertie en format Factur-X certifié et transmise sur le réseau national.<br/>';
@@ -742,17 +766,17 @@ class ActionsFacturationelectronique extends CommonHookActions
 					}
 					$banner_html .= '</div></div>';
 				} elseif ($pdp_status === 'queued') {
-					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $b2c_note_html . $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-clock" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Facture en cours de traitement / File d\'attente</strong><br/>';
 					$banner_html .= 'La facture est planifiée pour envoi au PDP et sera transmise sous peu.</div>';
 					$banner_html .= '</div>';
 				} elseif ($pdp_status === 'failed') {
-					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-danger fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $b2c_note_html . $config_error_html . $warning_html . '<div class="fe-alert fe-alert-danger fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-exclamation-triangle" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Échec de la transmission électronique</strong><br/>';
 					$banner_html .= 'La transmission a échoué. Veuillez vérifier les informations et réessayer.<br/>';
-					if (empty($buyer_siren)) {
+					if (empty($buyer_siren) && !$is_b2c) {
 						$banner_html .= '<br/><span class="fa fa-warning"></span> <strong>Avertissement :</strong> Le SIREN (Identifiant Professionnel 1) de ce client n\'est pas configuré. C\'est nécessaire pour l\'envoi B2B.<br/>';
 					}
 					$banner_html .= '<a class="butAction fe-btn-primary" style="margin-top: 10px; display: inline-flex; align-items: center;" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
@@ -760,11 +784,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 					$banner_html .= '</a>';
 					$banner_html .= '</div></div>';
 				} else { // not_sent
-					$banner_html = $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
+					$banner_html = $b2c_note_html . $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
 					$banner_html .= '<span class="fa fa-file-invoice-dollar" style="font-size: 20px; margin-top: 2px;"></span>';
 					$banner_html .= '<div><strong>Prête pour Facturation Électronique (B2B)</strong><br/>';
 					$banner_html .= 'Cette facture est validée et peut être transmise instantanément sous forme de Factur-X certifié au réseau national via ' . dol_escape_htmltag($provider_name) . '.<br/>';
-					if (empty($buyer_siren)) {
+					if (empty($buyer_siren) && !$is_b2c) {
 						$banner_html .= '<br/><span class="fa fa-warning"></span> <strong>Avertissement :</strong> Le SIREN (Identifiant Professionnel 1) du client n\'est pas renseigné dans sa fiche tiers. L\'envoi électronique requiert un SIREN valide.<br/>';
 						$banner_html .= '<a class="butAction fe-btn-warning" style="margin-top: 10px; display: inline-flex; align-items: center;" href="#" onclick="feOpenModal(' . $thirdparty_id . '); return false;">';
 						$banner_html .= '<span class="fa fa-search paddingrightonly"></span> Rechercher et associer le tiers';

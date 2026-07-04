@@ -114,4 +114,10 @@ FacturelectVatexCat_K=Livraison intracommunautaire
 FacturelectVatexCat_O=Hors champ de la TVA
 FacturelectVatexCat_E=Exonération / franchise en base
 
+# B2C — private individual thirdparty (no SIREN, out of scope of B2B e-invoicing)
+FacturelectB2cLabel=Client particulier (B2C)
+FacturelectB2cHelp=Cochez si ce tiers est un particulier (B2C). Un particulier n'a pas de SIREN et n'est pas soumis à la facturation électronique B2B (routage par SIREN) : le module masque alors l'erreur SIREN et le bouton associé. Détecté automatiquement si la « Nature » du tiers est « Particulier ».
+FacturelectB2cNoteTitle=Client particulier (B2C)
+FacturelectB2cNoteBody=Ce client est un particulier : il n'a pas de SIREN et n'entre pas dans le champ de la facturation électronique B2B (routage par SIREN). Ce type d'opération relève de l'e-reporting.
+
 

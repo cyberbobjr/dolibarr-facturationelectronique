@@ -397,6 +397,26 @@ class modFacturationElectronique extends DolibarrModules
 			'facturation_electronique@facturationelectronique'
 		);
 
+		$extrafields->addExtraField(
+			'facturelect_b2c',
+			'FacturelectB2cLabel',
+			'boolean',
+			107,
+			'',
+			'thirdparty',
+			0,
+			0,
+			'',
+			'',
+			1,
+			'',
+			'-1',
+			'FacturelectB2cHelp',
+			'',
+			'',
+			'facturation_electronique@facturationelectronique'
+		);
+
 		// 2. Customer invoice extrafields
 		$extrafields->addExtraField(
 			'facturelect_invoice_id',
