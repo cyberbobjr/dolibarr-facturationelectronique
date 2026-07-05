@@ -1053,6 +1053,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					$vat_details[$bucket] = array(
 						'rate' => $rate,
 						'cat_code' => $cat_code,
+						'vat_src_code' => (string) ($line->vat_src_code ?? ''),
 						'taxable_amount' => 0.0,
 						'tax_amount' => 0.0
 					);
@@ -1071,7 +1072,8 @@ class ActionsFacturationelectronique extends CommonHookActions
 			);
 			// BR-E-10/BR-G-10/BR-IC-10/BR-O-10/BR-AE-10: exempt categories SHALL carry a
 			// VAT exemption reason code (BT-121, VATEX list) and/or reason text (BT-120).
-			$exemption = $this->resolveVatExemption($amounts['cat_code'], $object);
+			$dict_vatex = $this->resolveDictionaryVatex($amounts['vat_src_code']);
+			$exemption = $this->resolveVatExemption($amounts['cat_code'], $object, $dict_vatex);
 			if ($exemption !== null) {
 				$breakdown['vat_exemption_reason_code'] = $exemption['reason_code'];
 				$breakdown['vat_exemption_reason'] = $exemption['reason'];
@@ -1469,20 +1471,27 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 * Resolution priority:
 	 *   1. Invoice extrafield override (facturelect_vatex_code / facturelect_vatex_reason)
 	 *   2. Third-party extrafield override (per-client default)
-	 *   3. Category default from VatexMapper (standard French legal wording)
+	 *   3. VAT dictionary column (llx_c_tva.einvoice_vatex, native since Dolibarr V24) — per rate
+	 *   4. Category default from VatexMapper (standard French legal wording)
+	 *
+	 * The dictionary tier (3) is per VAT rate/code, so unlike the single-pair overrides it does
+	 * NOT suffer from the mixed-regime limitation below: an invoice mixing an AE line and an E
+	 * line gets the right VATEX on each bucket from the dictionary. Prefer configuring the
+	 * dictionary over the invoice/third-party overrides when an invoice can mix exempt regimes.
 	 *
 	 * LIMITATION — single-regime override: an override (invoice or third party) is a single
 	 * code+reason pair applied to EVERY exempt breakdown bucket of the invoice. It is meant for
 	 * the common case where an invoice carries one exemption regime. On an invoice that mixes
 	 * several exempt categories (e.g. a G export line AND a K intra-community line), the override
 	 * stamps the same VATEX code on both buckets, which is incorrect. For mixed-regime invoices,
-	 * leave the override empty and rely on the per-category automatic mapping.
+	 * leave the override empty and rely on the dictionary column or the per-category mapping.
 	 *
-	 * @param  string       $cat_code  EN16931 VAT category code for the bucket
-	 * @param  CommonObject $object    The invoice object (carries array_options and thirdparty)
-	 * @return array|null              array('reason_code' => …, 'reason' => …) or null when no exemption applies
+	 * @param  string       $cat_code    EN16931 VAT category code for the bucket
+	 * @param  CommonObject $object      The invoice object (carries array_options and thirdparty)
+	 * @param  string       $dict_vatex  VATEX code read from the VAT dictionary for this bucket ('' if none)
+	 * @return array|null                array('reason_code' => …, 'reason' => …) or null when no exemption applies
 	 */
-	public function resolveVatExemption($cat_code, $object)
+	public function resolveVatExemption($cat_code, $object, $dict_vatex = '')
 	{
 		if (!VatexMapper::isExemptCategory($cat_code)) {
 			return null;
@@ -1511,9 +1520,64 @@ class ActionsFacturationelectronique extends CommonHookActions
 			} else {
 				$reason = VatexMapper::labelForCode($code) ?: $reason;
 			}
+		} elseif ($dict_vatex !== '') {
+			// VATEX code pinned per VAT rate in the dictionary (BT-121). The dictionary stores
+			// only the code, so derive the BT-120 reason text from the known label, keeping the
+			// category default wording when the code is not in our curated list.
+			$code = $dict_vatex;
+			$reason = VatexMapper::labelForCode($code) ?: $reason;
 		}
 
 		return array('reason_code' => $code, 'reason' => $reason);
+	}
+
+	/**
+	 * Read the VAT exemption reason code (VATEX / BT-121) pinned in the VAT dictionary.
+	 *
+	 * Since Dolibarr V24 the VAT dictionary table llx_c_tva carries an `einvoice_vatex`
+	 * column (varchar(32)) so an admin can pin a VATEX code per VAT rate/code, directly from
+	 * Setup → Dictionaries → VAT rates. This reads it for the c_tva row identified by the line's
+	 * source code (BT-95/BT-118 vat_src_code = c_tva.code). It returns '' when:
+	 *   - the column is absent (Dolibarr 20–23: the guarded query fails and the feature is
+	 *     transparently skipped for the rest of the request),
+	 *   - the line carries no source code (a bare 0% rate is ambiguous across the AE/E/K/G/O
+	 *     regimes, which share taux = 0 but differ by code),
+	 *   - or no matching active dictionary row defines a VATEX code.
+	 *
+	 * @param  string $vat_src_code  Dolibarr line source code (maps to llx_c_tva.code)
+	 * @return string                A VATEX code (e.g. 'VATEX-EU-AE') or '' when none configured
+	 */
+	private function resolveDictionaryVatex($vat_src_code)
+	{
+		static $available = null;   // null: unknown yet, false: column absent for this request
+		static $cache = array();
+
+		$src = trim((string) $vat_src_code);
+		if ($src === '' || $available === false) {
+			return '';
+		}
+		if (isset($cache[$src])) {
+			return $cache[$src];
+		}
+
+		$sql = 'SELECT einvoice_vatex FROM ' . MAIN_DB_PREFIX . 'c_tva'
+			. " WHERE code = '" . $this->db->escape($src) . "'"
+			. ' AND entity IN (' . getEntity('c_tva') . ')'
+			. ' AND active = 1 LIMIT 1';
+		$res = $this->db->query($sql);
+		if ($res === false) {
+			// Most likely the einvoice_vatex column does not exist (Dolibarr < 24): skip for good.
+			$available = false;
+			return '';
+		}
+		$available = true;
+		$vatex = '';
+		if ($this->db->num_rows($res) > 0) {
+			$row = $this->db->fetch_object($res);
+			$vatex = strtoupper(trim($row->einvoice_vatex ?? ''));
+		}
+		$cache[$src] = $vatex;
+		return $vatex;
 	}
 
 	/**

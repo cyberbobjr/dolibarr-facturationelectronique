@@ -117,6 +117,17 @@ Les correspondances automatiques appliquées selon la catégorie de TVA de chaqu
 | Hors champ de la TVA | `O` | `VATEX-EU-O` |
 | Franchise en base / exonération | `E` | `VATEX-FR-FRANCHISE` |
 
+#### D'où vient le code VATEX ?
+
+Le module détermine le code appliqué à chaque taux de TVA de la facture selon l'ordre de priorité suivant :
+
+1. **Surcharge sur la facture** — champ *« Code exonération TVA (VATEX) »* des attributs complémentaires de la facture.
+2. **Surcharge sur le tiers** — même champ au niveau de la fiche client (valeur par défaut par client).
+3. **Dictionnaire de TVA** — colonne `einvoice_vatex` de *Configuration → Dictionnaires → Taux de TVA*. **Native à partir de Dolibarr 24**, elle permet d'épingler un code VATEX **par taux de TVA**. C'est la source la plus fiable pour les factures qui mélangent plusieurs régimes, car chaque taux porte son propre code.
+4. **Correspondance automatique** par catégorie (tableau ci-dessus) — le repli par défaut.
+
+> **Dolibarr 20 à 23** : la colonne `einvoice_vatex` n'existe pas encore dans le dictionnaire. Le module la détecte automatiquement (elle est simplement ignorée si absente) et se rabat sur les surcharges facture/tiers puis sur la correspondance automatique, qui couvre déjà les cas courants (`VATEX-EU-AE`, `VATEX-FR-FRANCHISE`, etc.).
+
 #### Personnalisation du code
 
 Pour les cas particuliers (exonération médicale, régime spécifique…), vous pouvez **surcharger** le code par facture ou par tiers via le champ **« Code exonération TVA (VATEX) »** des attributs complémentaires. Ce champ est une **liste déroulante** des codes VATEX officiels accompagnés de leur description, ce qui évite toute erreur de saisie :
