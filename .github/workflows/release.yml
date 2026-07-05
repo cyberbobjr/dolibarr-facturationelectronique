@@ -1,5 +1,9 @@
 name: Create Release
 
+# Runs after a pull request is merged into main. The version bump + CHANGELOG are
+# produced inside the PR (see CONTRIBUTING.md), so this pipeline is READ-ONLY on the
+# repository: it never commits nor pushes to the protected `main` branch. It only reads
+# the already-bumped version, tags it, builds the ZIP and publishes the GitHub release.
 on:
   push:
     branches:
@@ -24,44 +28,45 @@ jobs:
           php-version: '8.1'
           coverage: none
 
+      - name: Prepare release (read-only)
+        id: prep
+        run: php build/prepare_release.php
+
+      - name: Check whether this version is already released
+        id: tagcheck
+        run: |
+          if git rev-parse "v${{ steps.prep.outputs.new_version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag v${{ steps.prep.outputs.new_version }} already exists — nothing to release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure Git User
+        if: steps.tagcheck.outputs.exists == 'false'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Generate Changelog and Bump Version
-        id: increment
-        run: |
-          php build/generate_changelog.php
-
-      - name: Commit and Push Changes
-        run: |
-          git add core/modules/modFacturationElectronique.class.php CHANGELOG.md
-          # Check if there are changes to commit
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(release): bump version and update CHANGELOG to ${{ steps.increment.outputs.new_version }} [skip ci]"
-            git push origin main
-          else
-            echo "No changes to commit."
-          fi
-
       - name: Create Git Tag
+        if: steps.tagcheck.outputs.exists == 'false'
         run: |
-          git tag -a "v${{ steps.increment.outputs.new_version }}" -m "Release v${{ steps.increment.outputs.new_version }}"
-          git push origin "v${{ steps.increment.outputs.new_version }}"
+          git tag -a "v${{ steps.prep.outputs.new_version }}" -m "Release v${{ steps.prep.outputs.new_version }}"
+          git push origin "v${{ steps.prep.outputs.new_version }}"
 
       - name: Build Module ZIP
-        run: |
-          php build/pack.php
+        if: steps.tagcheck.outputs.exists == 'false'
+        run: php build/pack.php
 
       - name: Create GitHub Release
+        if: steps.tagcheck.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.increment.outputs.new_version }}"
-          name: "Release v${{ steps.increment.outputs.new_version }}"
+          tag_name: "v${{ steps.prep.outputs.new_version }}"
+          name: "Release v${{ steps.prep.outputs.new_version }}"
           body_path: build/release_notes.md
           draft: false
-          prerelease: true
-          files: build/module_facturationelectronique-${{ steps.increment.outputs.zip_version }}.zip
+          prerelease: ${{ contains(steps.prep.outputs.new_version, '-') }}
+          files: build/module_facturationelectronique-${{ steps.prep.outputs.zip_version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

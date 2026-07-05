@@ -19,16 +19,28 @@ Ce module est versionné indépendamment du cœur de Dolibarr. Assurez-vous de t
 - Poussez votre branche sur GitHub et ouvrez une **Pull Request (PR)** ciblant la branche `main`.
 - Votre PR doit être approuvée par au moins un mainteneur et passer les vérifications CI/CD automatisées avant de pouvoir être fusionnée.
 
-### 3. Versioning et Release automatiques
+### 3. Versioning et Release
 
-Le processus de livraison (release) est entièrement automatisé par GitHub Actions :
-1. Développez vos fonctionnalités et corrections sur votre branche et ouvrez une Pull Request ciblant `main`.
-2. Une fois la Pull Request approuvée et fusionnée sur `main` :
-   - Le pipeline CI/CD de release s'exécute sur `main`.
-   - Il calcule automatiquement la nouvelle version sémantique (SemVer) en analysant l'historique des commits depuis le dernier tag (Breaking change = Major, Feat = Minor, Fix/Chore = Patch/Alpha).
-   - Il met à jour le fichier `CHANGELOG.md` en français et le numéro de version dans le descripteur du module.
-   - Il commite et pousse ces changements directement sur la branche `main` (avec la mention `[skip ci]` pour éviter les boucles).
-   - Il crée le tag Git correspondant, génère l'archive de distribution ZIP propre (sans les fichiers de test/dev) et publie la release sur GitHub avec les notes de version associées.
+La branche `main` est **protégée** : aucun push direct n'y est autorisé, tout passe par une Pull Request. Comme la CI ne peut donc pas écrire sur `main`, le calcul de version se fait **dans la PR**, et la release au **merge** est en lecture seule.
+
+**a. Bumper la version dans votre PR** (après avoir committé vos `feat`/`fix`/… sur votre branche) :
+
+```bash
+git fetch --tags                 # nécessaire pour détecter le dernier tag
+php build/generate_changelog.php # met à jour CHANGELOG.md + la version du descripteur
+git add CHANGELOG.md core/modules/modFacturationElectronique.class.php
+git commit -m "chore(release): bump version and update CHANGELOG"
+git push
+```
+
+Le script calcule automatiquement la nouvelle version sémantique (SemVer) à partir des commits depuis le dernier tag : *Breaking change* → **majeure**, `feat` → **mineure**, `fix`/`chore` → incrément du **compteur de pré-release**. Le canal de pré-release (`beta`) est défini par la constante `$targetChannel` en tête de `build/generate_changelog.php`.
+
+**b. Au merge sur `main`**, le pipeline `Create Release` s'exécute en **lecture seule** :
+- il lit la version déjà bumpée dans le descripteur (aucune écriture sur `main`) ;
+- il extrait les notes de version depuis `CHANGELOG.md` ;
+- il crée le tag Git `vX.Y.Z-beta.N`, génère l'archive ZIP propre (sans les fichiers de test/dev) et publie la release GitHub.
+
+> Si la version n'a pas été bumpée dans la PR, aucun nouveau tag n'existe côté release : le pipeline détecte que le tag est déjà présent (ou inchangé) et ne republie rien. Pensez donc bien à exécuter l'étape **a** dans chaque PR qui doit donner lieu à une livraison.
 
 ---
 

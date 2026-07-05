@@ -95,27 +95,36 @@ foreach ($commits as $commitLine) {
 }
 
 // 4. Calculate New Version (Semantic Versioning)
-// Target SemVer format: X.Y.Z or X.Y.Z-alpha.N
+// Target SemVer format: X.Y.Z or X.Y.Z-<channel>.N (channel = alpha | beta).
+//
+// Pre-release channel emitted for the NEXT version. Set to 'beta' during the beta
+// phase, 'alpha' for early builds, or '' to promote the line to a stable release.
+$targetChannel = 'beta';
+
 $versionBase = '';
-$preReleaseSuffix = '';
+$currentChannel = '';
 $preReleaseNum = 0;
 
-if (preg_match('/^(\d+\.\d+\.\d+)-alpha\.(\d+)$/', $currentVersion, $verMatches)) {
+if (preg_match('/^(\d+\.\d+\.\d+)-(alpha|beta)\.(\d+)$/', $currentVersion, $verMatches)) {
 	$versionBase = $verMatches[1];
-	$preReleaseSuffix = '-alpha';
-	$preReleaseNum = (int)$verMatches[2];
-} elseif (preg_match('/^(\d+\.\d+\.\d+)-alpha$/', $currentVersion, $verMatches)) {
+	$currentChannel = $verMatches[2];
+	$preReleaseNum = (int)$verMatches[3];
+} elseif (preg_match('/^(\d+\.\d+\.\d+)-(alpha|beta)$/', $currentVersion, $verMatches)) {
 	$versionBase = $verMatches[1];
-	$preReleaseSuffix = '-alpha';
+	$currentChannel = $verMatches[2];
 	$preReleaseNum = 0;
 } elseif (preg_match('/^(\d+\.\d+\.\d+)$/', $currentVersion, $verMatches)) {
 	$versionBase = $verMatches[1];
-	$preReleaseSuffix = '';
+	$currentChannel = '';
 	$preReleaseNum = 0;
 } else {
 	// Fallback
 	$versionBase = $currentVersion;
+	$currentChannel = '';
 }
+
+// The suffix we emit. An empty target channel promotes the line to a stable release.
+$preReleaseSuffix = $targetChannel !== '' ? '-' . $targetChannel : '';
 
 $parts = explode('.', $versionBase);
 $major = (int)$parts[0];
@@ -136,24 +145,30 @@ if ($hasBreakingChange) {
 		$minor++;
 		$patch = 0;
 	} else {
-		// If we are in alpha, check if the current alpha already covers the minor increment
-		// For simplicity, we increment the minor version base, and reset pre-release counter
+		// Pre-release line: bump the minor base and restart the pre-release counter.
 		$minor++;
 		$patch = 0;
 		$preReleaseNum = 1;
 	}
 } elseif ($hasFix) {
-	// Fix bumps patch version (or just increments pre-release count if in alpha)
+	// Fix bumps patch version (or just increments the pre-release count on a pre-release line)
 	if (empty($preReleaseSuffix)) {
 		$patch++;
 	} else {
 		$preReleaseNum++;
 	}
 } else {
-	// No code changes (only chores, docs, etc.), increment pre-release count if in alpha
+	// No code changes (only chores, docs, etc.): increment the pre-release count if any
 	if (!empty($preReleaseSuffix)) {
 		$preReleaseNum++;
 	}
+}
+
+// Switching pre-release channel (e.g. alpha -> beta) restarts the counter at 1 on the
+// same base version, so beta.1 cleanly supersedes the last alpha build. SemVer orders
+// alpha < beta, so 1.9.0-beta.1 > 1.9.0-alpha.N as intended.
+if (!empty($preReleaseSuffix) && $currentChannel !== '' && $currentChannel !== $targetChannel) {
+	$preReleaseNum = 1;
 }
 
 // Build the new version string
