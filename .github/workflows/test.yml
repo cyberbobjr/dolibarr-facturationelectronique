@@ -20,8 +20,10 @@ jobs:
           # Fetch main branch to check new commits
           git fetch origin main
           
-          # Get commit messages between origin/main and HEAD
-          COMMITS=$(git log origin/main..HEAD --pretty=format:"%s")
+          # Get commit messages between origin/main and HEAD.
+          # --no-merges skips merge commits, including the ephemeral "Merge <sha> into <sha>"
+          # commit GitHub synthesises for PR checks, which is not a Conventional Commit.
+          COMMITS=$(git log origin/main..HEAD --no-merges --pretty=format:"%s")
           echo "Checking commits in this PR:"
           echo "$COMMITS"
           echo "----------------------------------------"
