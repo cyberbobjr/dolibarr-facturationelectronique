@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.9.0-beta.1] - 2026-07-05
+
+### 🔧 Maintenance & Refactoring
+- ci: switch releases to beta channel and PR-based versioning (b1cba23) par benjaminmarchand
+
 ## [1.9.0-alpha.2] - 2026-07-05
 
 ### 🔧 Maintenance & Refactoring
