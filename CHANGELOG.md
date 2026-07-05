@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.9.0-alpha.1] - 2026-07-05
+
+### ✨ Nouvelles Fonctionnalités
+- feat(vatex): read exemption code from the VAT dictionary (einvoice_vatex, #28) (c0fd9b4) par benjaminmarchand
+
 ## [1.8.0-alpha.3] - 2026-07-04
 
 ### 🐛 Corrections de Bugs
