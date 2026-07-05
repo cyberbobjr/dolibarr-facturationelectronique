@@ -46,3 +46,6 @@ test_lookup.php
 # Temporary release notes
 /build/release_notes.md
 
+
+# Playwright MCP working directory (console logs, screenshots, snapshots)
+.playwright-mcp/
