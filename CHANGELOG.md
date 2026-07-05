@@ -6,6 +6,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.9.0-alpha.2] - 2026-07-05
+
+### 🔧 Maintenance & Refactoring
+- chore: remove committed .playwright-mcp working directory (755b9ca) par benjaminmarchand
+
 ## [1.9.0-alpha.1] - 2026-07-05
 
 ### ✨ Nouvelles Fonctionnalités
