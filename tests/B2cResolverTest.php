@@ -98,4 +98,34 @@ class B2cResolverTest extends TestCase
 	{
 		$this->assertFalse(FacturelectB2cResolver::isBuyerSirenInvalid(' 853 322 915 ', false));
 	}
+
+	/**
+	 * A French company resolves to the B2B processing rule.
+	 */
+	public function testProcessingRuleFrenchCompanyIsB2b()
+	{
+		$this->assertSame('B2B', FacturelectB2cResolver::resolveProcessingRule('TE_SMALL', 0, 'FR'));
+		$this->assertSame('B2B', FacturelectB2cResolver::resolveProcessingRule('', 0, ''));
+	}
+
+	/**
+	 * A private individual resolves to B2C regardless of country.
+	 */
+	public function testProcessingRulePrivateIndividualIsB2c()
+	{
+		$this->assertSame('B2C', FacturelectB2cResolver::resolveProcessingRule('TE_PRIVATE', 0, 'FR'));
+		$this->assertSame('B2C', FacturelectB2cResolver::resolveProcessingRule('TE_SMALL', 1, 'FR'));
+		// B2C wins even when the buyer is abroad.
+		$this->assertSame('B2C', FacturelectB2cResolver::resolveProcessingRule('TE_PRIVATE', 0, 'DE'));
+	}
+
+	/**
+	 * A non-French company resolves to the international B2BInt rule.
+	 */
+	public function testProcessingRuleForeignCompanyIsB2bInt()
+	{
+		$this->assertSame('B2BInt', FacturelectB2cResolver::resolveProcessingRule('TE_MEDIUM', 0, 'DE'));
+		// Country code is normalised (case / whitespace).
+		$this->assertSame('B2BInt', FacturelectB2cResolver::resolveProcessingRule('TE_MEDIUM', 0, ' be '));
+	}
 }
