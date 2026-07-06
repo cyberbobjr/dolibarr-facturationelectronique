@@ -101,7 +101,12 @@ class FacturelectClient
 			return false;
 		}
 		$company = $this->provider->getCompanyInfo();
-		return (is_array($company) && !empty($company['has_vat_on_debits']));
+		if (!is_array($company) || !isset($company['has_vat_on_debits'])) {
+			return false;
+		}
+		// Strict: the API returns a JSON boolean; FILTER_VALIDATE_BOOLEAN also treats the
+		// strings 'false'/'0'/'' as false, so a non-empty falsey value never skips fr:212.
+		return filter_var($company['has_vat_on_debits'], FILTER_VALIDATE_BOOLEAN);
 	}
 
 	/**

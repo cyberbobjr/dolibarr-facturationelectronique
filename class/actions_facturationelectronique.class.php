@@ -1276,16 +1276,22 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$payment_terms_parts = array();
 
 		$retained_amount = 0.0;
-		if (!empty($object->retained_warranty) && method_exists($object, 'getRetainedWarrantyAmount')) {
-			$retained_amount = round((float) $object->getRetainedWarrantyAmount(), 2);
+		if (!empty($object->retained_warranty)) {
+			if ($is_multicurrency) {
+				// getRetainedWarrantyAmount() returns the base-currency amount; recompute in
+				// the invoice currency so the mention stays consistent with the payload amounts.
+				$retained_amount = round($inv_total_ttc * ((float) $object->retained_warranty / 100), 2);
+			} elseif (method_exists($object, 'getRetainedWarrantyAmount')) {
+				$retained_amount = round((float) $object->getRetainedWarrantyAmount(), 2);
+			}
 		}
 		if ($retained_amount > 0) {
 			$net_now = round($inv_remains - $retained_amount, 2);
-			$rw_terms = sprintf('Retenue de garantie de %g%% (%.2f EUR)', (float) $object->retained_warranty, $retained_amount);
+			$rw_terms = sprintf('Retenue de garantie de %g%% (%.2f %s)', (float) $object->retained_warranty, $retained_amount, $currency_code);
 			if (!empty($object->retained_warranty_date_limit)) {
-				$rw_terms .= ' liberable le ' . dol_print_date($object->retained_warranty_date_limit, '%d/%m/%Y');
+				$rw_terms .= ' libérable le ' . dol_print_date($object->retained_warranty_date_limit, '%d/%m/%Y');
 			}
-			$rw_terms .= sprintf('. Net a payer a ce jour : %.2f EUR.', $net_now);
+			$rw_terms .= sprintf('. Net à payer à ce jour : %.2f %s.', $net_now, $currency_code);
 			$payment_terms_parts[] = $rw_terms;
 		}
 
@@ -1297,7 +1303,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 			} elseif (!empty($object->cond_reglement_label)) {
 				$cond_label = $this->cleanText($object->cond_reglement_label);
 			}
-			$payment_terms_parts[] = ($cond_label !== '') ? $cond_label : 'Paiement a reception de facture.';
+			$payment_terms_parts[] = ($cond_label !== '') ? $cond_label : 'Paiement à réception de facture.';
 		}
 
 		if (!empty($payment_terms_parts)) {
@@ -1447,10 +1453,12 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$discount = $defaults['FACTURELECT_NOTE_DISCOUNT'];
 		}
 
+		// Admin overrides come from a restricthtml textarea; normalise them to plain UTF-8
+		// like every other note so no HTML/entity leaks into the certified payload.
 		return array(
-			array('note' => $penalty, 'subject_code' => 'PMD'),
-			array('note' => $recovery, 'subject_code' => 'PMT'),
-			array('note' => $discount, 'subject_code' => 'AAB'),
+			array('note' => $this->cleanText($penalty), 'subject_code' => 'PMD'),
+			array('note' => $this->cleanText($recovery), 'subject_code' => 'PMT'),
+			array('note' => $this->cleanText($discount), 'subject_code' => 'AAB'),
 		);
 	}
 
@@ -1466,9 +1474,9 @@ class ActionsFacturationelectronique extends CommonHookActions
 	public static function getDefaultLegalMentions()
 	{
 		return array(
-			'FACTURELECT_NOTE_PENALTY'  => "Tout retard de paiement entraine l'application de penalites de retard au taux prevu par l'article L441-10 du Code de commerce, exigibles sans rappel.",
-			'FACTURELECT_NOTE_RECOVERY' => "Indemnite forfaitaire de 40 EUR pour frais de recouvrement en cas de retard de paiement (art. L441-10 et D441-5 du Code de commerce).",
-			'FACTURELECT_NOTE_DISCOUNT' => "Pas d'escompte pour paiement anticipe.",
+			'FACTURELECT_NOTE_PENALTY'  => "Tout retard de paiement entraîne l'application de pénalités de retard au taux prévu par l'article L441-10 du Code de commerce, exigibles sans rappel.",
+			'FACTURELECT_NOTE_RECOVERY' => "Indemnité forfaitaire de 40 € pour frais de recouvrement en cas de retard de paiement (art. L441-10 et D441-5 du Code de commerce).",
+			'FACTURELECT_NOTE_DISCOUNT' => "Pas d'escompte pour paiement anticipé.",
 		);
 	}
 
