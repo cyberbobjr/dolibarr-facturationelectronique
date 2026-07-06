@@ -995,7 +995,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 				$sum_allowances_ht += abs($total_ht);
 				$document_level_allowances[] = array(
 					'amount' => sprintf("%.2f", abs($total_ht)),
-					'reason' => !empty($line->desc) ? strip_tags($line->desc) : 'Remise',
+					'reason' => !empty($line->desc) ? $this->cleanText($line->desc) : 'Remise',
 					'vat_category_code' => $line_vat_code,
 					'vat_rate' => sprintf("%.1f", $line_vat_rate)
 				);
@@ -1018,7 +1018,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					'invoiced_item_vat_rate' => sprintf("%.1f", $line_vat_rate)
 				),
 				'item_information' => array(
-					'name' => !empty($line->desc) ? strip_tags($line->desc) : 'Ligne de facture'
+					'name' => !empty($line->desc) ? $this->cleanText($line->desc) : 'Ligne de facture'
 				)
 			);
 			$line_count++;
@@ -1252,18 +1252,18 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		// BT-12 Contract reference — from a linked Dolibarr contract, when present.
-		$object->fetchObjectLinked();
-		if (!empty($object->linkedObjects['contrat'])) {
-			$linked_contract = reset($object->linkedObjects['contrat']);
-			if (!empty($linked_contract->ref)) {
-				$en_invoice['contract_reference'] = $linked_contract->ref;
-			}
+		$contract_ref = $this->resolveLinkedContractRef($object);
+		if ($contract_ref !== '') {
+			$en_invoice['contract_reference'] = $contract_ref;
 		}
 
-		// BT-20 Payment terms — carries the retained-warranty (retenue de garantie) mention.
+		// BT-20 Payment terms — carries the retained-warranty (retenue de garantie) mention
+		// and guarantees BR-CO-25 (a positive amount due requires BT-9 due date OR BT-20).
 		// EN16931 core has no structured retainage field and SuperPDP's schema exposes none,
 		// so amount_due_for_payment stays EN16931-correct (BR-CO-16) and the retention is
-		// described textually here. This also satisfies BR-CO-25 when no due date is set.
+		// described textually here.
+		$payment_terms_parts = array();
+
 		$retained_amount = 0.0;
 		if (!empty($object->retained_warranty) && method_exists($object, 'getRetainedWarrantyAmount')) {
 			$retained_amount = round((float) $object->getRetainedWarrantyAmount(), 2);
@@ -1275,7 +1275,22 @@ class ActionsFacturationelectronique extends CommonHookActions
 				$rw_terms .= ' liberable le ' . dol_print_date($object->retained_warranty_date_limit, '%d/%m/%Y');
 			}
 			$rw_terms .= sprintf('. Net a payer a ce jour : %.2f EUR.', $net_now);
-			$en_invoice['payment_terms'] = $rw_terms;
+			$payment_terms_parts[] = $rw_terms;
+		}
+
+		// BR-CO-25 fallback: with no due date and no other term, BT-20 must still be present.
+		if (empty($en_invoice['payment_due_date']) && empty($payment_terms_parts)) {
+			$cond_label = '';
+			if (!empty($object->cond_reglement_doc)) {
+				$cond_label = $this->cleanText($object->cond_reglement_doc);
+			} elseif (!empty($object->cond_reglement_label)) {
+				$cond_label = $this->cleanText($object->cond_reglement_label);
+			}
+			$payment_terms_parts[] = ($cond_label !== '') ? $cond_label : 'Paiement a reception de facture.';
+		}
+
+		if (!empty($payment_terms_parts)) {
+			$en_invoice['payment_terms'] = implode(' ', $payment_terms_parts);
 		}
 
 		// BR-49/BR-50: invoice SHALL have at least one Payment Instructions block (BG-16 / BT-81)
@@ -1462,7 +1477,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$free_text = getDolGlobalString('INVOICE_FREE_TEXT');
 		if (!empty($free_text)) {
 			$notes[] = array(
-				'note' => strip_tags($free_text),
+				'note' => $this->cleanText($free_text),
 				'subject_code' => 'ZZZ'
 			);
 		}
@@ -1470,12 +1485,66 @@ class ActionsFacturationelectronique extends CommonHookActions
 		// Per-invoice public note
 		if (!empty($object->note_public)) {
 			$notes[] = array(
-				'note' => strip_tags($object->note_public),
+				'note' => $this->cleanText($object->note_public),
 				'subject_code' => 'ZZZ'
 			);
 		}
 
 		return $notes;
+	}
+
+	/**
+	 * Sanitise a Dolibarr rich-text value for the EN16931 payload: strip HTML tags,
+	 * decode HTML entities (&eacute;, &amp;, &#039;…) to their UTF-8 characters, and
+	 * collapse whitespace. strip_tags() alone leaves entities literal, so accented
+	 * text stored as entities is transmitted mangled (issue #31).
+	 *
+	 * @param  string $html  Raw description / note, possibly containing HTML
+	 * @return string        Clean UTF-8 plain text
+	 */
+	private function cleanText($html)
+	{
+		if ($html === null || $html === '') {
+			return '';
+		}
+		$text = strip_tags((string) $html);
+		$text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+		return trim(preg_replace('/\s+/', ' ', $text));
+	}
+
+	/**
+	 * Resolve the reference of a Dolibarr contract linked to the invoice (BT-12).
+	 * Queries the element_element link table directly: fetchObjectLinked() silently
+	 * skips objects whose module is disabled, and the link may be stored in either
+	 * direction, so a direct lookup is the robust way to find the contract.
+	 *
+	 * @param  Facture $object  The invoice
+	 * @return string           The contract ref, or '' when none is linked
+	 */
+	private function resolveLinkedContractRef($object)
+	{
+		if (empty($object->id)) {
+			return '';
+		}
+		$id = (int) $object->id;
+		$sql = "SELECT fk_source AS cid FROM " . $this->db->prefix() . "element_element";
+		$sql .= " WHERE targettype = 'facture' AND fk_target = " . $id . " AND sourcetype = 'contrat'";
+		$sql .= " UNION SELECT fk_target AS cid FROM " . $this->db->prefix() . "element_element";
+		$sql .= " WHERE sourcetype = 'facture' AND fk_source = " . $id . " AND targettype = 'contrat'";
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			return '';
+		}
+		$row = $this->db->fetch_object($resql);
+		if (empty($row) || empty($row->cid)) {
+			return '';
+		}
+		require_once DOL_DOCUMENT_ROOT . '/contrat/class/contrat.class.php';
+		$linked_contract = new Contrat($this->db);
+		if ($linked_contract->fetch((int) $row->cid) > 0 && !empty($linked_contract->ref)) {
+			return $linked_contract->ref;
+		}
+		return '';
 	}
 
 	/**
