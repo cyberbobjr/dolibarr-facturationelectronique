@@ -1244,6 +1244,17 @@ class ActionsFacturationelectronique extends CommonHookActions
 		if (!empty($object->date_lim_reglement)) {
 			$en_invoice['payment_due_date'] = dol_print_date($object->date_lim_reglement, '%Y-%m-%d');
 		}
+
+		// BT-72 Actual delivery date (BG-13). Default to the invoice date (standard French
+		// practice for services). Besides carrying a correct BT-72, it populates the
+		// ApplicableHeaderTradeDelivery element and avoids the empty-element warning
+		// (PEPPOL-EN16931-R008) emitted by the converter when the group is absent.
+		if (!empty($object->date)) {
+			$en_invoice['delivery_information'] = array(
+				'delivery_date' => dol_print_date($object->date, '%Y-%m-%d')
+			);
+		}
+
 		if (!empty($object->ref_client)) {
 			// BT-10 Buyer reference — the "référence client" the buyer expects on the invoice.
 			$en_invoice['buyer_reference'] = $object->ref_client;
