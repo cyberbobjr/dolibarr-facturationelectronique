@@ -144,6 +144,16 @@ class SuperPdpProvider extends BaseFacturelectProvider
 	}
 
 	/**
+	 * Fetch the authenticated company (GET /companies/me), incl. has_vat_on_debits / vat_regime.
+	 *
+	 * @return	array|bool		Company data or false on error
+	 */
+	public function getCompanyInfo()
+	{
+		return $this->callApi('GET', '/companies/me');
+	}
+
+	/**
 	 * Search company in the French registry by SIREN
 	 *
 	 * @param	string	$siren		9-digit SIREN

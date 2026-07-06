@@ -73,6 +73,15 @@ class InterfaceFacturationElectroniqueTriggers extends DolibarrTriggers
 				require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 				$client = new FacturelectClient($this->db);
 
+				// TVA sur les débits: for a seller on debit-based VAT, VAT on services is due
+				// at invoicing, so the collection e-reporting (fr:212 / MEN) is not required for
+				// our sales. Skip it only when explicitly set; otherwise keep the default so we
+				// never drop a legally required report.
+				if ($client->hasVatOnDebits()) {
+					dol_syslog("FacturationElectroniqueTriggers: seller reports VAT on debits, skipping fr:212 collection e-reporting for customer payment", LOG_INFO);
+					return 1;
+				}
+
 				foreach ($object->amounts as $facid => $amount_paid) {
 					if ($amount_paid <= 0) {
 						continue;
