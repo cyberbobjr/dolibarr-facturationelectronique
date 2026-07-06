@@ -1245,7 +1245,37 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$en_invoice['payment_due_date'] = dol_print_date($object->date_lim_reglement, '%Y-%m-%d');
 		}
 		if (!empty($object->ref_client)) {
+			// BT-10 Buyer reference — the "référence client" the buyer expects on the invoice.
+			$en_invoice['buyer_reference'] = $object->ref_client;
+			// BT-13 kept for backward compatibility (purchase order reference).
 			$en_invoice['purchase_order_reference'] = $object->ref_client;
+		}
+
+		// BT-12 Contract reference — from a linked Dolibarr contract, when present.
+		$object->fetchObjectLinked();
+		if (!empty($object->linkedObjects['contrat'])) {
+			$linked_contract = reset($object->linkedObjects['contrat']);
+			if (!empty($linked_contract->ref)) {
+				$en_invoice['contract_reference'] = $linked_contract->ref;
+			}
+		}
+
+		// BT-20 Payment terms — carries the retained-warranty (retenue de garantie) mention.
+		// EN16931 core has no structured retainage field and SuperPDP's schema exposes none,
+		// so amount_due_for_payment stays EN16931-correct (BR-CO-16) and the retention is
+		// described textually here. This also satisfies BR-CO-25 when no due date is set.
+		$retained_amount = 0.0;
+		if (!empty($object->retained_warranty) && method_exists($object, 'getRetainedWarrantyAmount')) {
+			$retained_amount = round((float) $object->getRetainedWarrantyAmount(), 2);
+		}
+		if ($retained_amount > 0) {
+			$net_now = round($inv_remains - $retained_amount, 2);
+			$rw_terms = sprintf('Retenue de garantie de %g%% (%.2f EUR)', (float) $object->retained_warranty, $retained_amount);
+			if (!empty($object->retained_warranty_date_limit)) {
+				$rw_terms .= ' liberable le ' . dol_print_date($object->retained_warranty_date_limit, '%d/%m/%Y');
+			}
+			$rw_terms .= sprintf('. Net a payer a ce jour : %.2f EUR.', $net_now);
+			$en_invoice['payment_terms'] = $rw_terms;
 		}
 
 		// BR-49/BR-50: invoice SHALL have at least one Payment Instructions block (BG-16 / BT-81)
