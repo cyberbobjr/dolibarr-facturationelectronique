@@ -27,6 +27,9 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 if (!class_exists('FacturelectClient')) {
 	require_once '../class/facturelectclient.class.php';
 }
+if (!class_exists('ActionsFacturationelectronique')) {
+	require_once '../class/actions_facturationelectronique.class.php';
+}
 
 // Access control
 if (!$user->admin) {
@@ -94,6 +97,22 @@ if ($action === 'update_features') {
 	}
 }
 
+if ($action === 'update_notes') {
+	// BR-FR-05 legal mentions (BT-22). Empty value => module falls back to the legal default.
+	$note_penalty = GETPOST('note_penalty', 'restricthtml');
+	$note_recovery = GETPOST('note_recovery', 'restricthtml');
+	$note_discount = GETPOST('note_discount', 'restricthtml');
+	$n1 = dolibarr_set_const($db, 'FACTURELECT_NOTE_PENALTY', trim($note_penalty), 'chaine', 0, 'Late payment penalties mention (BR-FR-05)', $conf->entity);
+	$n2 = dolibarr_set_const($db, 'FACTURELECT_NOTE_RECOVERY', trim($note_recovery), 'chaine', 0, 'Recovery costs mention (BR-FR-05)', $conf->entity);
+	$n3 = dolibarr_set_const($db, 'FACTURELECT_NOTE_DISCOUNT', trim($note_discount), 'chaine', 0, 'Early-payment discount mention (BR-FR-05)', $conf->entity);
+	if ($n1 >= 0 && $n2 >= 0 && $n3 >= 0) {
+		setEventMessages("Mentions légales mises à jour.", null, 'mesgs');
+	} else {
+		setEventMessages($langs->trans("ErrorFailedToSave"), null, 'errors');
+		$error++;
+	}
+}
+
 
 // Perform connection test
 $connection_tested = false;
@@ -150,6 +169,12 @@ $prod_id = getDolGlobalString('FACTURATION_ELECTRONIQUE_PROD_CLIENT_ID');
 $prod_secret = getDolGlobalString('FACTURATION_ELECTRONIQUE_PROD_CLIENT_SECRET');
 
 $active_provider = getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp');
+
+// BR-FR-05 legal mentions: stored overrides (empty => the legal default is used at build time)
+$legal_defaults = ActionsFacturationelectronique::getDefaultLegalMentions();
+$note_penalty = getDolGlobalString('FACTURELECT_NOTE_PENALTY');
+$note_recovery = getDolGlobalString('FACTURELECT_NOTE_RECOVERY');
+$note_discount = getDolGlobalString('FACTURELECT_NOTE_DISCOUNT');
 
 // Layout headers
 llxHeader('', $langs->trans("FacturelectSetup"), '');
@@ -305,6 +330,35 @@ print '      </label>';
 print '    </div>';
 print '    <div style="margin-top:16px;">';
 print '      <button type="submit" class="fe-btn fe-btn-primary"><span class="fa fa-save"></span> Enregistrer les fonctionnalités</button>';
+print '    </div>';
+print '  </form>';
+print '</div>';
+
+// ==== Legal mentions (BR-FR-05) ====
+print '<div class="fe-card" style="margin-bottom:20px;">';
+print '  <h3 class="fe-card-title"><span class="fa fa-gavel"></span> Mentions légales obligatoires</h3>';
+print '  <p style="color:#64748b; font-size:13px; margin-bottom:16px;">Trois mentions sont exigées sur chaque facture électronique française (règle <strong>BR-FR-05</strong>) et transmises dans le Factur-X. Laissez un champ vide pour utiliser la mention légale par défaut affichée en dessous.</p>';
+print '  <form action="' . $_SERVER['PHP_SELF'] . '" method="post">';
+print '    <input type="hidden" name="token" value="' . newToken() . '">';
+print '    <input type="hidden" name="action" value="update_notes">';
+print '    <div style="display:flex; flex-direction:column; gap:16px;">';
+
+$note_fields = array(
+	array('name' => 'note_penalty', 'val' => $note_penalty, 'def' => $legal_defaults['FACTURELECT_NOTE_PENALTY'], 'label' => 'Pénalités de retard', 'icon' => 'fa-percent', 'code' => 'PMD'),
+	array('name' => 'note_recovery', 'val' => $note_recovery, 'def' => $legal_defaults['FACTURELECT_NOTE_RECOVERY'], 'label' => 'Frais de recouvrement (indemnité 40 €)', 'icon' => 'fa-euro-sign', 'code' => 'PMT'),
+	array('name' => 'note_discount', 'val' => $note_discount, 'def' => $legal_defaults['FACTURELECT_NOTE_DISCOUNT'], 'label' => 'Escompte', 'icon' => 'fa-tag', 'code' => 'AAB'),
+);
+foreach ($note_fields as $fld) {
+	print '      <div>';
+	print '        <label style="display:block; font-weight:600; color:#1e293b; margin-bottom:4px;"><span class="fa ' . $fld['icon'] . '" style="color:#0284c7; margin-right:6px;"></span>' . $fld['label'] . ' <span style="font-weight:400; color:#94a3b8; font-size:11px;">(code ' . $fld['code'] . ')</span></label>';
+	print '        <textarea name="' . $fld['name'] . '" rows="2" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-family:inherit;" placeholder="Laissé vide : mention légale par défaut">' . dol_escape_htmltag($fld['val']) . '</textarea>';
+	print '        <p style="margin:3px 0 0; font-size:11px; color:#94a3b8;"><em>Défaut : ' . dol_escape_htmltag($fld['def']) . '</em></p>';
+	print '      </div>';
+}
+
+print '    </div>';
+print '    <div style="margin-top:16px;">';
+print '      <button type="submit" class="fe-btn fe-btn-primary"><span class="fa fa-save"></span> Enregistrer les mentions</button>';
 print '    </div>';
 print '  </form>';
 print '</div>';

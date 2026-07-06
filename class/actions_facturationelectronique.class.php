@@ -1406,23 +1406,43 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 */
 	private function buildMandatoryFrenchNotes()
 	{
+		$defaults = self::getDefaultLegalMentions();
+
 		$penalty = getDolGlobalString('FACTURELECT_NOTE_PENALTY');
 		if ($penalty === '') {
-			$penalty = "Tout retard de paiement entraine l'application de penalites de retard au taux prevu par l'article L441-10 du Code de commerce, exigibles sans rappel.";
+			$penalty = $defaults['FACTURELECT_NOTE_PENALTY'];
 		}
 		$recovery = getDolGlobalString('FACTURELECT_NOTE_RECOVERY');
 		if ($recovery === '') {
-			$recovery = "Indemnite forfaitaire de 40 EUR pour frais de recouvrement en cas de retard de paiement (art. L441-10 et D441-5 du Code de commerce).";
+			$recovery = $defaults['FACTURELECT_NOTE_RECOVERY'];
 		}
 		$discount = getDolGlobalString('FACTURELECT_NOTE_DISCOUNT');
 		if ($discount === '') {
-			$discount = "Pas d'escompte pour paiement anticipe.";
+			$discount = $defaults['FACTURELECT_NOTE_DISCOUNT'];
 		}
 
 		return array(
 			array('note' => $penalty, 'subject_code' => 'PMD'),
 			array('note' => $recovery, 'subject_code' => 'PMT'),
 			array('note' => $discount, 'subject_code' => 'AAB'),
+		);
+	}
+
+	/**
+	 * Default legal wording (BR-FR-05 / BT-22) for the three mandatory French mentions,
+	 * keyed by their module constant. Single source of truth shared by the payload builder
+	 * (buildMandatoryFrenchNotes) and the setup page. The €40 recovery indemnity is a fixed
+	 * legal amount (art. L441-10), so it is safe as a default; the penalty text cites no
+	 * invented rate. Admins may override any of them in Configuration.
+	 *
+	 * @return array<string, string>  Constant name => default text
+	 */
+	public static function getDefaultLegalMentions()
+	{
+		return array(
+			'FACTURELECT_NOTE_PENALTY'  => "Tout retard de paiement entraine l'application de penalites de retard au taux prevu par l'article L441-10 du Code de commerce, exigibles sans rappel.",
+			'FACTURELECT_NOTE_RECOVERY' => "Indemnite forfaitaire de 40 EUR pour frais de recouvrement en cas de retard de paiement (art. L441-10 et D441-5 du Code de commerce).",
+			'FACTURELECT_NOTE_DISCOUNT' => "Pas d'escompte pour paiement anticipe.",
 		);
 	}
 
