@@ -1104,6 +1104,13 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$legal_buyer_siren = $matches[1];
 		}
 
+		// BT-30 / BT-47 legal registration identifier scheme = ISO/IEC 6523 ICD list.
+		// French SIREN (9 digits) => 0002 (SIRENE), SIRET (14 digits) => 0009.
+		// This is a DIFFERENT code list from the CEF EAS scheme (0225) used for the
+		// electronic_address (BT-34 / BT-49) below — do not unify them.
+		$seller_iso_scheme = (strlen($clean_seller_siren) === 14) ? '0009' : '0002';
+		$buyer_iso_scheme = (strlen($legal_buyer_siren) === 14) ? '0009' : '0002';
+
 		// Compute remaining amount due (not auto-hydrated by fetch())
 		$total_paid = $object->getSommePaiement();
 		$remains_to_pay = round(floatval($object->total_ttc) - $total_paid, 2);
@@ -1168,11 +1175,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 				),
 				'legal_registration_identifier' => array(
 					'value' => $clean_seller_siren,
-					'scheme' => '0225'
+					'scheme' => $seller_iso_scheme
 				),
 				'trading_name' => $mysoc->name,
 				'identifiers' => array(
-					array('value' => $clean_seller_siren, 'scheme' => '0225')
+					array('value' => $clean_seller_siren, 'scheme' => $seller_iso_scheme)
 				),
 				'electronic_address' => array(
 					'value' => ($mode !== 'production' && $active_provider === 'superpdp') ? '315143296_7182' : $clean_seller_siren,
@@ -1190,11 +1197,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 				)),
 				'legal_registration_identifier' => array(
 					'value' => $legal_buyer_siren,
-					'scheme' => '0225'
+					'scheme' => $buyer_iso_scheme
 				),
 				'trading_name' => $object->thirdparty->name,
 				'identifiers' => array(
-					array('value' => $legal_buyer_siren, 'scheme' => '0225')
+					array('value' => $legal_buyer_siren, 'scheme' => $buyer_iso_scheme)
 				),
 				'electronic_address' => array(
 					'value' => $buyer_identifier,
@@ -1339,6 +1346,17 @@ class ActionsFacturationelectronique extends CommonHookActions
 	{
 		$notes = $this->buildPaymentNotes($object);
 
+		// BR-FR-05 (French CTC / FNFE): three legal mentions are mandatory in the notes (BG-1):
+		//   - late-payment penalties          (subject code PMD)
+		//   - €40 fixed recovery indemnity     (subject code PMT)
+		//   - early-payment discount / absence (subject code AAB)
+		// Texts are overridable via module constants so they are never wrongly hard-coded
+		// (root cause of issue #21). Defaults use safe legal wording (art. L441-10 C. com.);
+		// the €40 forfait is a fixed legal amount, so it is safe as a default.
+		foreach ($this->buildMandatoryFrenchNotes() as $mandatory_note) {
+			$notes[] = $mandatory_note;
+		}
+
 		if ($has_ae) {
 			$notes[] = array(
 				'note' => 'Autoliquidation de la TVA - Article 283-2 du CGI',
@@ -1347,6 +1365,35 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		return $notes;
+	}
+
+	/**
+	 * Build the three legally mandatory French invoice mentions (BR-FR-05 / BG-1).
+	 * Each text is overridable via a module constant to avoid hard-coding wrong values
+	 * (issue #21); defaults fall back to safe legal wording.
+	 *
+	 * @return  array   Note entries with their UNTDID 4451 subject codes
+	 */
+	private function buildMandatoryFrenchNotes()
+	{
+		$penalty = getDolGlobalString('FACTURELECT_NOTE_PENALTY');
+		if ($penalty === '') {
+			$penalty = "Tout retard de paiement entraine l'application de penalites de retard au taux prevu par l'article L441-10 du Code de commerce, exigibles sans rappel.";
+		}
+		$recovery = getDolGlobalString('FACTURELECT_NOTE_RECOVERY');
+		if ($recovery === '') {
+			$recovery = "Indemnite forfaitaire de 40 EUR pour frais de recouvrement en cas de retard de paiement (art. L441-10 et D441-5 du Code de commerce).";
+		}
+		$discount = getDolGlobalString('FACTURELECT_NOTE_DISCOUNT');
+		if ($discount === '') {
+			$discount = "Pas d'escompte pour paiement anticipe.";
+		}
+
+		return array(
+			array('note' => $penalty, 'subject_code' => 'PMD'),
+			array('note' => $recovery, 'subject_code' => 'PMT'),
+			array('note' => $discount, 'subject_code' => 'AAB'),
+		);
 	}
 
 	/**
