@@ -144,6 +144,16 @@ class SuperPdpProvider extends BaseFacturelectProvider
 	}
 
 	/**
+	 * Fetch the authenticated company (GET /companies/me), incl. has_vat_on_debits / vat_regime.
+	 *
+	 * @return	array|bool		Company data or false on error
+	 */
+	public function getCompanyInfo()
+	{
+		return $this->callApi('GET', '/companies/me');
+	}
+
+	/**
 	 * Search company in the French registry by SIREN
 	 *
 	 * @param	string	$siren		9-digit SIREN
@@ -232,11 +242,38 @@ class SuperPdpProvider extends BaseFacturelectProvider
 	 */
 	public function sendInvoice($invoice_obj, $pdf_content)
 	{
-		$res = $this->sendFacturXInvoice($pdf_content, $invoice_obj->ref);
+		$processing_rule = $this->resolveProcessingRule($invoice_obj);
+		$res = $this->sendFacturXInvoice($pdf_content, $invoice_obj->ref, $processing_rule);
 		if ($res && !empty($res['id'])) {
 			return $res['id'];
 		}
 		return false;
+	}
+
+	/**
+	 * Resolve the AFNOR processing rule (B2B / B2C / B2BInt) for an outgoing invoice,
+	 * from its buyer third party. Sent as the processing_rule query param of POST /invoices.
+	 *
+	 * @param	Facture	$invoice_obj	Dolibarr invoice (thirdparty expected to be loaded)
+	 * @return	string					'B2B', 'B2C' or 'B2BInt'
+	 */
+	private function resolveProcessingRule($invoice_obj)
+	{
+		if (empty($invoice_obj->thirdparty)) {
+			$invoice_obj->fetch_thirdparty();
+		}
+		$tp = $invoice_obj->thirdparty;
+		if (empty($tp)) {
+			return 'B2B';
+		}
+		if (empty($tp->array_options)) {
+			$tp->fetch_optionals();
+		}
+		if (!class_exists('FacturelectB2cResolver')) {
+			require_once dirname(__FILE__) . '/../b2cresolver.class.php';
+		}
+		$b2c_flag = !empty($tp->array_options['options_facturelect_b2c']) ? $tp->array_options['options_facturelect_b2c'] : 0;
+		return FacturelectB2cResolver::resolveProcessingRule($tp->typent_code, $b2c_flag, $tp->country_code);
 	}
 
 	/**
@@ -330,9 +367,13 @@ class SuperPdpProvider extends BaseFacturelectProvider
 	 * @param	string	$external_id	Local Invoice Reference
 	 * @return	array|bool				Response array or false
 	 */
-	public function sendFacturXInvoice($file_content, $external_id)
+	public function sendFacturXInvoice($file_content, $external_id, $processing_rule = '')
 	{
-		return $this->callApi('POST', '/invoices?external_id=' . urlencode($external_id), $file_content, true, 'application/pdf');
+		$path = '/invoices?external_id=' . urlencode($external_id);
+		if ($processing_rule !== '') {
+			$path .= '&processing_rule=' . urlencode($processing_rule);
+		}
+		return $this->callApi('POST', $path, $file_content, true, 'application/pdf');
 	}
 
 	/**

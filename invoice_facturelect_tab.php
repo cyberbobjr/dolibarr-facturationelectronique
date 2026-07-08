@@ -113,7 +113,7 @@ if (empty($pdp_id)) {
 		print '        <p style="margin:0; font-size:14px; font-weight:600;">' . $langs->trans("FacturelectTabNotSentTitle") . '</p>';
 		print '        <p style="margin:5px 0 15px 0; font-size:12px;">' . $langs->trans("FacturelectTabNotSentCustomerDesc") . '</p>';
 		if ($object->statut > 0) {
-			print '        <a href="' . DOL_URL_ROOT . '/custom/facturationelectronique/outbound_list.php?action=send&id=' . $object->id . '&mainmenu=facturelect&leftmenu=outbound" class="butAction fe-btn-primary">';
+			print '        <a href="' . dol_buildpath('/facturationelectronique/outbound_list.php', 1) . '?action=send&id=' . $object->id . '&mainmenu=facturelect&leftmenu=outbound" class="butAction fe-btn-primary">';
 			print '          <span class="fa fa-paper-plane"></span> ' . $langs->trans("FacturelectTabTransmitNow");
 			print '        </a>';
 		}

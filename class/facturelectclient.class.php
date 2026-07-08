@@ -89,6 +89,27 @@ class FacturelectClient
 	}
 
 	/**
+	 * Whether the authenticated company reports VAT on debits (TVA sur les débits).
+	 * When true, VAT on services is due at invoicing, so collection e-reporting is not
+	 * required. Defaults to false (safe: keep collection e-reporting) if unknown.
+	 *
+	 * @return	bool
+	 */
+	public function hasVatOnDebits()
+	{
+		if (!method_exists($this->provider, 'getCompanyInfo')) {
+			return false;
+		}
+		$company = $this->provider->getCompanyInfo();
+		if (!is_array($company) || !isset($company['has_vat_on_debits'])) {
+			return false;
+		}
+		// Strict: the API returns a JSON boolean; FILTER_VALIDATE_BOOLEAN also treats the
+		// strings 'false'/'0'/'' as false, so a non-empty falsey value never skips fr:212.
+		return filter_var($company['has_vat_on_debits'], FILTER_VALIDATE_BOOLEAN);
+	}
+
+	/**
 	 * Search company in the French registry by SIREN
 	 *
 	 * @param	string	$siren		9-digit SIREN

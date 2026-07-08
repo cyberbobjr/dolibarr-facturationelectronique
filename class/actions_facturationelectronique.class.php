@@ -995,7 +995,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 				$sum_allowances_ht += abs($total_ht);
 				$document_level_allowances[] = array(
 					'amount' => sprintf("%.2f", abs($total_ht)),
-					'reason' => !empty($line->desc) ? strip_tags($line->desc) : 'Remise',
+					'reason' => !empty($line->desc) ? $this->cleanText($line->desc) : 'Remise',
 					'vat_category_code' => $line_vat_code,
 					'vat_rate' => sprintf("%.1f", $line_vat_rate)
 				);
@@ -1018,7 +1018,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					'invoiced_item_vat_rate' => sprintf("%.1f", $line_vat_rate)
 				),
 				'item_information' => array(
-					'name' => !empty($line->desc) ? strip_tags($line->desc) : 'Ligne de facture'
+					'name' => !empty($line->desc) ? $this->cleanText($line->desc) : 'Ligne de facture'
 				)
 			);
 			$line_count++;
@@ -1104,6 +1104,13 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$legal_buyer_siren = $matches[1];
 		}
 
+		// BT-30 / BT-47 legal registration identifier scheme = ISO/IEC 6523 ICD list.
+		// French SIREN (9 digits) => 0002 (SIRENE), SIRET (14 digits) => 0009.
+		// This is a DIFFERENT code list from the CEF EAS scheme (0225) used for the
+		// electronic_address (BT-34 / BT-49) below — do not unify them.
+		$seller_iso_scheme = (strlen($clean_seller_siren) === 14) ? '0009' : '0002';
+		$buyer_iso_scheme = (strlen($legal_buyer_siren) === 14) ? '0009' : '0002';
+
 		// Compute remaining amount due (not auto-hydrated by fetch())
 		$total_paid = $object->getSommePaiement();
 		$remains_to_pay = round(floatval($object->total_ttc) - $total_paid, 2);
@@ -1168,11 +1175,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 				),
 				'legal_registration_identifier' => array(
 					'value' => $clean_seller_siren,
-					'scheme' => '0225'
+					'scheme' => $seller_iso_scheme
 				),
 				'trading_name' => $mysoc->name,
 				'identifiers' => array(
-					array('value' => $clean_seller_siren, 'scheme' => '0225')
+					array('value' => $clean_seller_siren, 'scheme' => $seller_iso_scheme)
 				),
 				'electronic_address' => array(
 					'value' => ($mode !== 'production' && $active_provider === 'superpdp') ? '315143296_7182' : $clean_seller_siren,
@@ -1190,11 +1197,11 @@ class ActionsFacturationelectronique extends CommonHookActions
 				)),
 				'legal_registration_identifier' => array(
 					'value' => $legal_buyer_siren,
-					'scheme' => '0225'
+					'scheme' => $buyer_iso_scheme
 				),
 				'trading_name' => $object->thirdparty->name,
 				'identifiers' => array(
-					array('value' => $legal_buyer_siren, 'scheme' => '0225')
+					array('value' => $legal_buyer_siren, 'scheme' => $buyer_iso_scheme)
 				),
 				'electronic_address' => array(
 					'value' => $buyer_identifier,
@@ -1237,8 +1244,70 @@ class ActionsFacturationelectronique extends CommonHookActions
 		if (!empty($object->date_lim_reglement)) {
 			$en_invoice['payment_due_date'] = dol_print_date($object->date_lim_reglement, '%Y-%m-%d');
 		}
+
+		// BT-72 Actual delivery date (BG-13). Default to the invoice date (standard French
+		// practice for services). Besides carrying a correct BT-72, it populates the
+		// ApplicableHeaderTradeDelivery element and avoids the empty-element warning
+		// (PEPPOL-EN16931-R008) emitted by the converter when the group is absent.
+		if (!empty($object->date)) {
+			$en_invoice['delivery_information'] = array(
+				'delivery_date' => dol_print_date($object->date, '%Y-%m-%d')
+			);
+		}
+
 		if (!empty($object->ref_client)) {
+			// BT-10 Buyer reference — the "référence client" the buyer expects on the invoice.
+			$en_invoice['buyer_reference'] = $object->ref_client;
+			// BT-13 kept for backward compatibility (purchase order reference).
 			$en_invoice['purchase_order_reference'] = $object->ref_client;
+		}
+
+		// BT-12 Contract reference — from a linked Dolibarr contract, when present.
+		$contract_ref = $this->resolveLinkedContractRef($object);
+		if ($contract_ref !== '') {
+			$en_invoice['contract_reference'] = $contract_ref;
+		}
+
+		// BT-20 Payment terms — carries the retained-warranty (retenue de garantie) mention
+		// and guarantees BR-CO-25 (a positive amount due requires BT-9 due date OR BT-20).
+		// EN16931 core has no structured retainage field and SuperPDP's schema exposes none,
+		// so amount_due_for_payment stays EN16931-correct (BR-CO-16) and the retention is
+		// described textually here.
+		$payment_terms_parts = array();
+
+		$retained_amount = 0.0;
+		if (!empty($object->retained_warranty)) {
+			if ($is_multicurrency) {
+				// getRetainedWarrantyAmount() returns the base-currency amount; recompute in
+				// the invoice currency so the mention stays consistent with the payload amounts.
+				$retained_amount = round($inv_total_ttc * ((float) $object->retained_warranty / 100), 2);
+			} elseif (method_exists($object, 'getRetainedWarrantyAmount')) {
+				$retained_amount = round((float) $object->getRetainedWarrantyAmount(), 2);
+			}
+		}
+		if ($retained_amount > 0) {
+			$net_now = round($inv_remains - $retained_amount, 2);
+			$rw_terms = sprintf('Retenue de garantie de %g%% (%.2f %s)', (float) $object->retained_warranty, $retained_amount, $currency_code);
+			if (!empty($object->retained_warranty_date_limit)) {
+				$rw_terms .= ' libérable le ' . dol_print_date($object->retained_warranty_date_limit, '%d/%m/%Y');
+			}
+			$rw_terms .= sprintf('. Net à payer à ce jour : %.2f %s.', $net_now, $currency_code);
+			$payment_terms_parts[] = $rw_terms;
+		}
+
+		// BR-CO-25 fallback: with no due date and no other term, BT-20 must still be present.
+		if (empty($en_invoice['payment_due_date']) && empty($payment_terms_parts)) {
+			$cond_label = '';
+			if (!empty($object->cond_reglement_doc)) {
+				$cond_label = $this->cleanText($object->cond_reglement_doc);
+			} elseif (!empty($object->cond_reglement_label)) {
+				$cond_label = $this->cleanText($object->cond_reglement_label);
+			}
+			$payment_terms_parts[] = ($cond_label !== '') ? $cond_label : 'Paiement à réception de facture.';
+		}
+
+		if (!empty($payment_terms_parts)) {
+			$en_invoice['payment_terms'] = implode(' ', $payment_terms_parts);
 		}
 
 		// BR-49/BR-50: invoice SHALL have at least one Payment Instructions block (BG-16 / BT-81)
@@ -1339,6 +1408,17 @@ class ActionsFacturationelectronique extends CommonHookActions
 	{
 		$notes = $this->buildPaymentNotes($object);
 
+		// BR-FR-05 (French CTC / FNFE): three legal mentions are mandatory in the notes (BG-1):
+		//   - late-payment penalties          (subject code PMD)
+		//   - €40 fixed recovery indemnity     (subject code PMT)
+		//   - early-payment discount / absence (subject code AAB)
+		// Texts are overridable via module constants so they are never wrongly hard-coded
+		// (root cause of issue #21). Defaults use safe legal wording (art. L441-10 C. com.);
+		// the €40 forfait is a fixed legal amount, so it is safe as a default.
+		foreach ($this->buildMandatoryFrenchNotes() as $mandatory_note) {
+			$notes[] = $mandatory_note;
+		}
+
 		if ($has_ae) {
 			$notes[] = array(
 				'note' => 'Autoliquidation de la TVA - Article 283-2 du CGI',
@@ -1347,6 +1427,57 @@ class ActionsFacturationelectronique extends CommonHookActions
 		}
 
 		return $notes;
+	}
+
+	/**
+	 * Build the three legally mandatory French invoice mentions (BR-FR-05 / BG-1).
+	 * Each text is overridable via a module constant to avoid hard-coding wrong values
+	 * (issue #21); defaults fall back to safe legal wording.
+	 *
+	 * @return  array   Note entries with their UNTDID 4451 subject codes
+	 */
+	private function buildMandatoryFrenchNotes()
+	{
+		$defaults = self::getDefaultLegalMentions();
+
+		$penalty = getDolGlobalString('FACTURELECT_NOTE_PENALTY');
+		if ($penalty === '') {
+			$penalty = $defaults['FACTURELECT_NOTE_PENALTY'];
+		}
+		$recovery = getDolGlobalString('FACTURELECT_NOTE_RECOVERY');
+		if ($recovery === '') {
+			$recovery = $defaults['FACTURELECT_NOTE_RECOVERY'];
+		}
+		$discount = getDolGlobalString('FACTURELECT_NOTE_DISCOUNT');
+		if ($discount === '') {
+			$discount = $defaults['FACTURELECT_NOTE_DISCOUNT'];
+		}
+
+		// Admin overrides come from a restricthtml textarea; normalise them to plain UTF-8
+		// like every other note so no HTML/entity leaks into the certified payload.
+		return array(
+			array('note' => $this->cleanText($penalty), 'subject_code' => 'PMD'),
+			array('note' => $this->cleanText($recovery), 'subject_code' => 'PMT'),
+			array('note' => $this->cleanText($discount), 'subject_code' => 'AAB'),
+		);
+	}
+
+	/**
+	 * Default legal wording (BR-FR-05 / BT-22) for the three mandatory French mentions,
+	 * keyed by their module constant. Single source of truth shared by the payload builder
+	 * (buildMandatoryFrenchNotes) and the setup page. The €40 recovery indemnity is a fixed
+	 * legal amount (art. L441-10), so it is safe as a default; the penalty text cites no
+	 * invented rate. Admins may override any of them in Configuration.
+	 *
+	 * @return array<string, string>  Constant name => default text
+	 */
+	public static function getDefaultLegalMentions()
+	{
+		return array(
+			'FACTURELECT_NOTE_PENALTY'  => "Tout retard de paiement entraîne l'application de pénalités de retard au taux prévu par l'article L441-10 du Code de commerce, exigibles sans rappel.",
+			'FACTURELECT_NOTE_RECOVERY' => "Indemnité forfaitaire de 40 € pour frais de recouvrement en cas de retard de paiement (art. L441-10 et D441-5 du Code de commerce).",
+			'FACTURELECT_NOTE_DISCOUNT' => "Pas d'escompte pour paiement anticipé.",
+		);
 	}
 
 	/**
@@ -1365,7 +1496,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 		$free_text = getDolGlobalString('INVOICE_FREE_TEXT');
 		if (!empty($free_text)) {
 			$notes[] = array(
-				'note' => strip_tags($free_text),
+				'note' => $this->cleanText($free_text),
 				'subject_code' => 'ZZZ'
 			);
 		}
@@ -1373,12 +1504,66 @@ class ActionsFacturationelectronique extends CommonHookActions
 		// Per-invoice public note
 		if (!empty($object->note_public)) {
 			$notes[] = array(
-				'note' => strip_tags($object->note_public),
+				'note' => $this->cleanText($object->note_public),
 				'subject_code' => 'ZZZ'
 			);
 		}
 
 		return $notes;
+	}
+
+	/**
+	 * Sanitise a Dolibarr rich-text value for the EN16931 payload: strip HTML tags,
+	 * decode HTML entities (&eacute;, &amp;, &#039;…) to their UTF-8 characters, and
+	 * collapse whitespace. strip_tags() alone leaves entities literal, so accented
+	 * text stored as entities is transmitted mangled (issue #31).
+	 *
+	 * @param  string $html  Raw description / note, possibly containing HTML
+	 * @return string        Clean UTF-8 plain text
+	 */
+	private function cleanText($html)
+	{
+		if ($html === null || $html === '') {
+			return '';
+		}
+		$text = strip_tags((string) $html);
+		$text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+		return trim(preg_replace('/\s+/', ' ', $text));
+	}
+
+	/**
+	 * Resolve the reference of a Dolibarr contract linked to the invoice (BT-12).
+	 * Queries the element_element link table directly: fetchObjectLinked() silently
+	 * skips objects whose module is disabled, and the link may be stored in either
+	 * direction, so a direct lookup is the robust way to find the contract.
+	 *
+	 * @param  Facture $object  The invoice
+	 * @return string           The contract ref, or '' when none is linked
+	 */
+	private function resolveLinkedContractRef($object)
+	{
+		if (empty($object->id)) {
+			return '';
+		}
+		$id = (int) $object->id;
+		$sql = "SELECT fk_source AS cid FROM " . $this->db->prefix() . "element_element";
+		$sql .= " WHERE targettype = 'facture' AND fk_target = " . $id . " AND sourcetype = 'contrat'";
+		$sql .= " UNION SELECT fk_target AS cid FROM " . $this->db->prefix() . "element_element";
+		$sql .= " WHERE sourcetype = 'facture' AND fk_source = " . $id . " AND targettype = 'contrat'";
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			return '';
+		}
+		$row = $this->db->fetch_object($resql);
+		if (empty($row) || empty($row->cid)) {
+			return '';
+		}
+		require_once DOL_DOCUMENT_ROOT . '/contrat/class/contrat.class.php';
+		$linked_contract = new Contrat($this->db);
+		if ($linked_contract->fetch((int) $row->cid) > 0 && !empty($linked_contract->ref)) {
+			return $linked_contract->ref;
+		}
+		return '';
 	}
 
 	/**

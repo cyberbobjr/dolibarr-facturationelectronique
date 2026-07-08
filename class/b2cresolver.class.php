@@ -71,4 +71,25 @@ class FacturelectB2cResolver
 		$siren = preg_replace('/\s+/', '', (string) $buyer_siren);
 		return empty($siren) || strlen($siren) !== 9 || !ctype_digit($siren);
 	}
+
+	/**
+	 * Resolve the AFNOR/SuperPDP processing rule for an outgoing invoice (POST /invoices).
+	 * Only 'B2B', 'B2C' and 'B2BInt' are handled by the API.
+	 *
+	 * @param	string	$typent_code			Buyer entity type code (e.g. 'TE_PRIVATE')
+	 * @param	mixed	$b2c_flag				Explicit B2C override extrafield value
+	 * @param	string	$buyer_country_code		Buyer ISO country code (e.g. 'FR', 'DE')
+	 * @return	string							'B2C', 'B2BInt' or 'B2B'
+	 */
+	public static function resolveProcessingRule($typent_code, $b2c_flag, $buyer_country_code)
+	{
+		if (self::isB2c($typent_code, $b2c_flag)) {
+			return 'B2C';
+		}
+		$country = strtoupper(trim((string) $buyer_country_code));
+		if ($country !== '' && $country !== 'FR') {
+			return 'B2BInt';
+		}
+		return 'B2B';
+	}
 }
