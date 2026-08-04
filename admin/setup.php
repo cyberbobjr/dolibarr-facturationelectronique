@@ -30,6 +30,9 @@ if (!class_exists('FacturelectClient')) {
 if (!class_exists('ActionsFacturationelectronique')) {
 	require_once '../class/actions_facturationelectronique.class.php';
 }
+if (!class_exists('FacturelectDirectoryFactory')) {
+	require_once '../class/facturelectdirectoryfactory.class.php';
+}
 
 // Access control
 if (!$user->admin) {
@@ -89,7 +92,14 @@ if ($action === 'update_features') {
 	$r1 = dolibarr_set_const($db, 'FACTURELECT_FEATURE_EINVOICING', $feat_einvoicing, 'chaine', 0, 'Enable electronic invoice transmission feature', $conf->entity);
 	$r2 = dolibarr_set_const($db, 'FACTURELECT_FEATURE_SIREN', $feat_siren, 'chaine', 0, 'Enable SIREN directory management feature', $conf->entity);
 	$r3 = dolibarr_set_const($db, 'FACTURELECT_ALLOW_IMPORT', $feat_allow_import, 'chaine', 0, 'Allow importing incoming supplier invoices (else PDF download only)', $conf->entity);
-	if ($r1 >= 0 && $r2 >= 0 && $r3 >= 0) {
+	// Default identification source of the SIREN lookup modal. An unknown value is ignored
+	// by the factory, which falls back to the public API.
+	$siren_source = GETPOST('siren_source', 'alpha');
+	if (!array_key_exists($siren_source, FacturelectDirectoryFactory::getAvailableSources())) {
+		$siren_source = FacturelectDirectoryFactory::DEFAULT_SOURCE;
+	}
+	$r4 = dolibarr_set_const($db, FacturelectDirectoryFactory::SETTING_NAME, $siren_source, 'chaine', 0, 'Default directory used for SIREN lookup', $conf->entity);
+	if ($r1 >= 0 && $r2 >= 0 && $r3 >= 0 && $r4 >= 0) {
 		setEventMessages("Fonctionnalités mises à jour.", null, 'mesgs');
 	} else {
 		setEventMessages($langs->trans("ErrorFailedToSave"), null, 'errors');
@@ -159,6 +169,7 @@ if ($action === 'sync_selected') {
 $feat_einvoicing = getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1);
 $feat_siren = getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1);
 $feat_allow_import = getDolGlobalInt('FACTURELECT_ALLOW_IMPORT', 1);
+$siren_source = FacturelectDirectoryFactory::getDefaultCode();
 $mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE');
 if (empty($mode)) {
 	$mode = 'sandbox'; // Default to sandbox
@@ -316,6 +327,17 @@ print '          <strong style="color:#1e293b;"><span class="fa fa-search" style
 print '          <p style="margin:4px 0 0; font-size:12px; color:#64748b;">Recherche et vérification SIREN des tiers dans l\'annuaire national, détection des SIREN manquants/incorrects, enrichissement des coordonnées, bouton de vérification sur les fiches tiers.</p>';
 print '        </div>';
 print '      </label>';
+
+// Feature 2 bis — Default identification source used by the SIREN lookup modal
+print '      <div style="padding:12px 12px 12px 40px; margin-top:-8px;">';
+print '        <label for="siren_source" style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">Source de données par défaut pour la recherche SIREN</label>';
+print '        <select id="siren_source" name="siren_source" class="fe-input" style="max-width:340px;">';
+foreach (FacturelectDirectoryFactory::getAvailableSources() as $source_code => $source_label) {
+	print '          <option value="' . dol_escape_htmltag($source_code) . '"' . ($source_code === $siren_source ? ' selected' : '') . '>' . dol_escape_htmltag($source_label) . '</option>';
+}
+print '        </select>';
+print '        <p style="margin:6px 0 0; font-size:12px; color:#64748b;">L\'<strong>API gouv.fr</strong> est gratuite, sans clé, et fait de la recherche plein texte (tolérante aux sigles et à l\'ordre des mots). L\'<strong>annuaire du PDP</strong> ne cherche que par <em>début</em> de raison sociale. Dans les deux cas, les adresses de réception PEPPOL restent lues chez le PDP. L\'utilisateur peut changer de source dans la fenêtre de recherche.</p>';
+print '      </div>';
 
 // Feature 3 — Allow import of incoming supplier invoices
 $f3_on = (int) $feat_allow_import;
