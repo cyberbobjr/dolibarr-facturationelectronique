@@ -24,11 +24,20 @@
 if (!defined('NOREQUIREMENU'))  define('NOREQUIREMENU', '1');
 if (!defined('NOREQUIREHTML'))  define('NOREQUIREHTML', '1');
 if (!defined('NOREQUIREAJAX'))  define('NOREQUIREAJAX', '1');
+// Same convention as the core ajax endpoints (core/ajax/*.php): without this, every
+// call would rotate the session token and invalidate the one held by the page.
+if (!defined('NOTOKENRENEWAL')) define('NOTOKENRENEWAL', '1');
 
 // Bootstrap Dolibarr
 require_once '../../main.inc.php';
 if (!class_exists('FacturelectClient')) {
 	require_once './class/facturelectclient.class.php';
+}
+if (!class_exists('FacturelectDirectoryFactory')) {
+	require_once './class/facturelectdirectoryfactory.class.php';
+}
+if (!class_exists('FacturelectPeppolId')) {
+	require_once './class/facturelectpeppolid.class.php';
 }
 
 // Check permissions (allow admin or users with read access to third parties)
@@ -47,26 +56,84 @@ $action = GETPOST('action', 'alpha');
 $siren = GETPOST('siren', 'alpha');
 $socid = GETPOST('socid', 'int');
 
+// CSRF: update_tiers writes to the database, so it must be POSTed with a valid session
+// token. The read-only lookups stay on GET. Both session tokens are accepted because
+// Dolibarr keeps token/newtoken in step differently depending on
+// MAIN_SECURITY_CSRF_TOKEN_RENEWAL_ON_EACH_CALL.
+if ($action === 'update_tiers') {
+	$sent_token = GETPOST('token', 'alpha');
+	$session_tokens = array_filter(array(
+		isset($_SESSION['token']) ? $_SESSION['token'] : '',
+		isset($_SESSION['newtoken']) ? $_SESSION['newtoken'] : '',
+	));
+	$is_post = (!empty($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST');
+	if (!$is_post || empty($sent_token) || !in_array($sent_token, $session_tokens, true)) {
+		http_response_code(403);
+		header('Content-Type: application/json');
+		echo json_encode(array(
+			'success' => false,
+			'error' => "Jeton de securite invalide ou expire. Rechargez la page et reessayez."
+		));
+		exit;
+	}
+}
+
 $client = new FacturelectClient($db);
 
 header('Content-Type: application/json');
 
+/**
+ * Decompose each PEPPOL routing address server-side, so no client ever has to parse
+ * identifiers itself (single source of truth: FacturelectPeppolId).
+ *
+ * @param	array	$rows	Raw entries returned by the provider
+ * @return	array			Same entries, each with a 'parsed' block and a 'label'
+ */
+function facturelectDescribeEntries($rows)
+{
+	$entries = array();
+	foreach ((array) $rows as $entry) {
+		$parsed = FacturelectPeppolId::parse(
+			isset($entry['identifier']) ? $entry['identifier'] : '',
+			isset($entry['scheme']) ? $entry['scheme'] : ''
+		);
+		$entry['parsed'] = $parsed;
+		$entry['label'] = FacturelectPeppolId::describe($parsed);
+		$entries[] = $entry;
+	}
+
+	return $entries;
+}
+
 if ($action === 'search_companies') {
 	$name = GETPOST('name', 'alpha');
 	$zip = GETPOST('zip', 'alpha');
+	// Sanitize the source the same way as any other discriminator parameter: copy/pasted
+	// URLs may carry typographic quotes or stray characters (see AGENTS.md rule 29).
+	// 'aZ09' blanks the value entirely on any unexpected character, and the factory then
+	// falls back to the configured default.
+	$source = preg_replace('/[^a-z0-9_]/', '', strtolower(GETPOST('source', 'aZ09')));
 
 	if (empty($name)) {
 		echo json_encode(array('success' => false, 'error' => 'Nom requis pour la recherche'));
 		exit;
 	}
 
-	$res = $client->searchCompaniesList($name, $zip);
-	if ($res === false) {
-		echo json_encode(array('success' => false, 'error' => $client->error));
+	$directory = FacturelectDirectoryFactory::getDirectory($db, $source);
+	$companies = $directory->searchCompanies($name, $zip);
+	if ($companies === false) {
+		echo json_encode(array('success' => false, 'error' => $directory->error));
 		exit;
 	}
 
-	echo json_encode(array('success' => true, 'companies' => $res['data']));
+	echo json_encode(array(
+		'success' => true,
+		'companies' => $companies,
+		'source' => $directory->getCode(),
+		'source_label' => $directory->getLabel(),
+		// Reported back so the user knows when the search had to be broadened
+		'used_query' => $directory->used_query
+	));
 	exit;
 }
 
@@ -83,7 +150,7 @@ if ($action === 'get_entries') {
 		exit;
 	}
 
-	echo json_encode(array('success' => true, 'entries' => $res['data']));
+	echo json_encode(array('success' => true, 'entries' => facturelectDescribeEntries($res['data'])));
 	exit;
 }
 
@@ -116,7 +183,7 @@ if ($action === 'check_siren') {
 	echo json_encode(array(
 		'success' => true,
 		'company' => !empty($company_res['data']) ? $company_res['data'][0] : null,
-		'entries' => $entries_res['data']
+		'entries' => facturelectDescribeEntries($entries_res['data'])
 	));
 	exit;
 }
@@ -160,32 +227,23 @@ if ($action === 'update_tiers') {
 		$scheme = '0225';
 	}
 
-	// Parse scheme and identifier
-	$active_scheme = $scheme ? $scheme : '0225';
-	$active_identifier = $identifier;
-	if (strpos($identifier, ':') !== false) {
-		$parts = explode(':', $identifier);
-		$active_scheme = $parts[0];
-		$active_identifier = $parts[1];
-	}
+	// Split the routing address into its legal components. The full address is kept for
+	// PEPPOL routing, but only a validated 9-digit SIREN may reach llx_societe.siren —
+	// SuperPDP identifiers such as "0225:200058485_20005848500018_RH" would otherwise be
+	// written whole and break the Factur-X legal_registration_identifier (AGENTS.md #16).
+	$parsed = FacturelectPeppolId::parse($identifier, $scheme);
+	$active_scheme = $parsed['scheme'];
+	$active_identifier = $parsed['identifier'];
+	$siren = $parsed['siren'];
+	$siret = $parsed['siret'];
 
-	// Extract SIREN and SIRET
-	$siren = $active_identifier;
-	$siret = '';
-	if (strpos($active_identifier, '*') !== false) {
-		$parts = explode('*', $active_identifier);
-		$siren = $parts[0];
-		$nic = $parts[1];
-		if (strlen($nic) === 5) {
-			$siret = $siren . $nic;
-		} else {
-			$siret = $siren . str_pad($nic, 5, '0', STR_PAD_LEFT);
-		}
+	// Update thirdparty standard fields. Dolibarr persists idprof1/idprof2 to the
+	// siren/siret columns (AGENTS.md #32); an unparsable component is left untouched
+	// rather than overwritten with an invalid value.
+	if (!empty($siren)) {
+		$thirdparty->siren = $siren;
+		$thirdparty->idprof1 = $siren;
 	}
-
-	// Update thirdparty standard fields
-	$thirdparty->siren = $siren;
-	$thirdparty->idprof1 = $siren;
 	if (!empty($siret)) {
 		$thirdparty->siret = $siret;
 		$thirdparty->idprof2 = $siret;
@@ -242,7 +300,8 @@ if ($action === 'update_tiers') {
 		'scheme' => $active_scheme,
 		'identifier' => $active_identifier,
 		'siren' => $siren,
-		'siret' => $siret
+		'siret' => $siret,
+		'label' => FacturelectPeppolId::describe($parsed)
 	));
 	exit;
 }

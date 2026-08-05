@@ -6,6 +6,30 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.10.0-beta.1] - 2026-08-04
+
+### ✨ Nouvelles Fonctionnalités
+- feat(siren): add pluggable directories with the public gouv.fr API (8fbf9f0) par benjaminmarchand
+- feat(ereporting): skip collection e-reporting when seller reports VAT on debits (b6f1155) par benjaminmarchand
+- feat(superpdp): send AFNOR processing_rule (B2B/B2C/B2BInt) on transmission (9e1d120) par benjaminmarchand
+- feat(setup): expose the BR-FR-05 legal mentions in the config page (#31) (7b49264) par benjaminmarchand
+- feat(en16931): map retained warranty, buyer & contract references (#31) (78401e4) par benjaminmarchand
+
+### 🐛 Corrections de Bugs
+- fix(peppol): parse routing identifiers instead of storing them raw (5e92b16) par benjaminmarchand
+- fix(review): address Copilot feedback on PR #33 (446c3db) par benjaminmarchand
+- fix(en16931): set delivery date (BT-72) to clear the R008 empty-element warning (#31) (da6808c) par benjaminmarchand
+- fix(en16931): decode entity accents, resolve contract ref, BR-CO-25 (#31) (8354aba) par benjaminmarchand
+- fix(invoice): resolve transmit button URL with dol_buildpath (#32) (5a20034) par benjaminmarchand
+- fix(en16931): valid seller identifier scheme + mandatory FR legal notes (#31) (ddb26c7) par benjaminmarchand
+
+### 🔧 Maintenance & Refactoring
+- refactor(ui): extract the shared SIREN lookup modal into a template (24c1821) par benjaminmarchand
+- Merge pull request #33 from cyberbobjr/fix/facturationelectronique-en16931 (fc58e3b) par Benjamin MARCHAND
+- test(b2c): cover resolveProcessingRule (B2B/B2C/B2BInt) (0ac8561) par benjaminmarchand
+- Merge pull request #30 from cyberbobjr/ci/bump-actions-node24 (40db8db) par Benjamin MARCHAND
+- ci: bump actions to Node 24 runtimes (checkout v5, gh-release v3) (5b341c7) par benjaminmarchand
+
 ## [1.9.0-beta.1] - 2026-07-05
 
 ### 🔧 Maintenance & Refactoring
