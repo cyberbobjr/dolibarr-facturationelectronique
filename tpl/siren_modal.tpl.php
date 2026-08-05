@@ -67,6 +67,21 @@ if (!window.feSirenModalLoaded) {
 	window.feCurrentCompanies = [];
 
 	const feLookupUrl = '<?php echo dol_escape_js($fe_modal_lookup_url); ?>';
+	const feToken = '<?php echo dol_escape_js(newToken()); ?>';
+
+	/* Every string rendered below comes from a remote directory or a provider error
+	   payload, so none of it may reach innerHTML unescaped. */
+	function feEscapeHtml(value) {
+		if (value === null || value === undefined) {
+			return '';
+		}
+		return String(value)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
 
 	/* Open the modal for a row of a list, carrying that row's own third party and prefills */
 	window.feOpenModalForRow = function (socid, name, zip) {
@@ -134,6 +149,26 @@ if (!window.feSirenModalLoaded) {
 			</div>
 		`;
 		document.body.insertAdjacentHTML('beforeend', html);
+
+		/* Generated rows carry their parameters in data attributes and are wired through a
+		   single delegated listener: no provider-controlled string is ever concatenated
+		   into an onclick attribute. */
+		document.getElementById('fe-modal-content').addEventListener('click', function (event) {
+			const trigger = event.target.closest('[data-fe-action]');
+			if (!trigger) {
+				return;
+			}
+			const index = parseInt(trigger.getAttribute('data-fe-index'), 10);
+			if (trigger.getAttribute('data-fe-action') === 'select') {
+				window.feSelectCompanyByIndex(index);
+			} else if (trigger.getAttribute('data-fe-action') === 'associate') {
+				window.feAssociateTiers(
+					index,
+					trigger.getAttribute('data-fe-identifier'),
+					trigger.getAttribute('data-fe-scheme')
+				);
+			}
+		});
 	}
 
 	/* Mirrors BaseFacturelectDirectory::normalizeSearchText() closely enough to decide
@@ -174,7 +209,7 @@ if (!window.feSirenModalLoaded) {
 			.then(data => {
 				loader.classList.add('fe-hidden');
 				if (!data.success) {
-					content.innerHTML = '<div class="fe-no-results fe-text-danger">' + (data.error || 'Erreur inconnue') + '</div>';
+					content.innerHTML = '<div class="fe-no-results fe-text-danger">' + feEscapeHtml(data.error || 'Erreur inconnue') + '</div>';
 					return;
 				}
 				if (data.companies && data.companies.length > 0) {
@@ -182,26 +217,26 @@ if (!window.feSirenModalLoaded) {
 					let html = '<div class="fe-companies-list">';
 					html += '<h4>Entreprises trouvées (' + data.companies.length + ')</h4>';
 					if (data.used_query && feNormalizeQuery(data.used_query) !== feNormalizeQuery(name)) {
-						html += '<div class="fe-search-hint">Aucun résultat exact : recherche élargie sur <strong>« ' + data.used_query + ' »</strong>.</div>';
+						html += '<div class="fe-search-hint">Aucun résultat exact : recherche élargie sur <strong>« ' + feEscapeHtml(data.used_query) + ' »</strong>.</div>';
 					}
 					data.companies.forEach((company, index) => {
 						const inactiveBadge = company.is_active === false
 							? ' <span class="fe-status-pill danger">Cessée</span>'
 							: '';
 						const siretLine = company.siret
-							? `<strong>SIRET siège :</strong> ${company.siret}<br/>`
+							? `<strong>SIRET siège :</strong> ${feEscapeHtml(company.siret)}<br/>`
 							: '';
 						html += `
 							<div class="fe-company-card">
 								<div class="fe-company-info">
-									<div class="fe-company-name">${company.formal_name}${inactiveBadge}</div>
+									<div class="fe-company-name">${feEscapeHtml(company.formal_name)}${inactiveBadge}</div>
 									<div class="fe-company-details">
-										<strong>SIREN :</strong> ${company.number}<br/>
+										<strong>SIREN :</strong> ${feEscapeHtml(company.number)}<br/>
 										${siretLine}
-										<strong>Adresse :</strong> ${company.address}, ${company.postcode} ${company.city}
+										<strong>Adresse :</strong> ${feEscapeHtml(company.address)}, ${feEscapeHtml(company.postcode)} ${feEscapeHtml(company.city)}
 									</div>
 								</div>
-								<button type="button" class="fe-btn fe-btn-secondary" onclick="feSelectCompanyByIndex(${index})">
+								<button type="button" class="fe-btn fe-btn-secondary" data-fe-action="select" data-fe-index="${index}">
 									Sélectionner
 								</button>
 							</div>
@@ -211,7 +246,7 @@ if (!window.feSirenModalLoaded) {
 					content.innerHTML = html;
 				} else {
 					content.innerHTML = '<div class="fe-no-results">Aucune entreprise correspondante trouvée'
-						+ (data.used_query ? ' (dernière tentative : « ' + data.used_query + ' »)' : '')
+						+ (data.used_query ? ' (dernière tentative : « ' + feEscapeHtml(data.used_query) + ' »)' : '')
 						+ '. Essayez un nom plus court, ou saisissez directement le SIREN.</div>';
 				}
 			})
@@ -254,14 +289,14 @@ if (!window.feSirenModalLoaded) {
 						html += `
 							<tr>
 								<td>
-									<strong>${establishmentLabel}</strong><br/>
-									<span class="fe-peppol-id">${entry.identifier}</span>
+									<strong>${feEscapeHtml(establishmentLabel)}</strong><br/>
+									<span class="fe-peppol-id">${feEscapeHtml(entry.identifier)}</span>
 								</td>
 								<td>
 									<span class="fe-status-pill ${statusClass}">${statusText}</span>
 								</td>
 								<td>
-									<button type="button" class="fe-btn fe-btn-primary fe-btn-sm" onclick="feAssociateTiers(${index}, '${entry.identifier}', '${entry.scheme}')">
+									<button type="button" class="fe-btn fe-btn-primary fe-btn-sm" data-fe-action="associate" data-fe-index="${index}" data-fe-identifier="${feEscapeHtml(entry.identifier)}" data-fe-scheme="${feEscapeHtml(entry.scheme)}">
 										Associer
 									</button>
 								</td>
@@ -271,7 +306,7 @@ if (!window.feSirenModalLoaded) {
 					html += '</tbody></table>';
 					html += `
 						<div style="margin-top: 15px; text-align: right;">
-							<button type="button" class="fe-btn fe-btn-secondary" onclick="feAssociateTiers(${index}, '${company.number}', '0225')">
+							<button type="button" class="fe-btn fe-btn-secondary" data-fe-action="associate" data-fe-index="${index}" data-fe-identifier="${feEscapeHtml(company.number)}" data-fe-scheme="0225">
 								Associer le SIREN uniquement (sans établissement spécifique)
 							</button>
 						</div>
@@ -281,7 +316,7 @@ if (!window.feSirenModalLoaded) {
 					let html = '<div class="fe-no-results">Aucun établissement enregistré dans l\'annuaire PEPPOL pour cette entreprise.</div>';
 					html += `
 						<div style="margin-top: 15px; text-align: center;">
-							<button type="button" class="fe-btn fe-btn-primary" onclick="feAssociateTiers(${index}, '${company.number}', '0225')">
+							<button type="button" class="fe-btn fe-btn-primary" data-fe-action="associate" data-fe-index="${index}" data-fe-identifier="${feEscapeHtml(company.number)}" data-fe-scheme="0225">
 								Associer quand même le SIREN uniquement
 							</button>
 						</div>
@@ -324,8 +359,10 @@ if (!window.feSirenModalLoaded) {
 		loader.classList.remove('fe-hidden');
 		content.innerHTML = '';
 
+		// State-changing call: POST carrying the Dolibarr CSRF token (see siren_lookup.php)
 		const params = new URLSearchParams({
 			action: 'update_tiers',
+			token: feToken,
 			socid: window.feSocId,
 			identifier: identifier,
 			scheme: scheme,
@@ -336,7 +373,11 @@ if (!window.feSirenModalLoaded) {
 			update_details: updateDetails
 		});
 
-		fetch(feLookupUrl + '?' + params.toString())
+		fetch(feLookupUrl, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+			body: params.toString()
+		})
 			.then(response => response.json())
 			.then(data => {
 				loader.classList.add('fe-hidden');
@@ -347,10 +388,10 @@ if (!window.feSirenModalLoaded) {
 							<div>
 								<strong>Association réussie !</strong><br/>
 								Le tiers a été mis à jour avec succès :<br/>
-								${data.siren ? '- SIREN : ' + data.siren + '<br/>' : ''}
-								${data.siret ? '- SIRET : ' + data.siret + '<br/>' : ''}
-								- Adresse de réception : ${data.label}<br/>
-								- Identifiant PEPPOL : ${data.scheme}:${data.identifier}
+								${data.siren ? '- SIREN : ' + feEscapeHtml(data.siren) + '<br/>' : ''}
+								${data.siret ? '- SIRET : ' + feEscapeHtml(data.siret) + '<br/>' : ''}
+								- Adresse de réception : ${feEscapeHtml(data.label)}<br/>
+								- Identifiant PEPPOL : ${feEscapeHtml(data.scheme)}:${feEscapeHtml(data.identifier)}
 							</div>
 						</div>
 					`;
@@ -364,11 +405,11 @@ if (!window.feSirenModalLoaded) {
 							<span class="fa fa-exclamation-triangle" style="font-size:24px;"></span>
 							<div>
 								<strong>Erreur lors de l'association</strong><br/>
-								${data.error}
+								${feEscapeHtml(data.error)}
 							</div>
 						</div>
 						<div style="text-align: center; margin-top:15px;">
-							<button type="button" class="fe-btn fe-btn-secondary" onclick="feSelectCompanyByIndex(${companyIndex})">
+							<button type="button" class="fe-btn fe-btn-secondary" data-fe-action="select" data-fe-index="${companyIndex}">
 								Retour
 							</button>
 						</div>

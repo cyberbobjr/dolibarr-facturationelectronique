@@ -24,6 +24,9 @@
 if (!defined('NOREQUIREMENU'))  define('NOREQUIREMENU', '1');
 if (!defined('NOREQUIREHTML'))  define('NOREQUIREHTML', '1');
 if (!defined('NOREQUIREAJAX'))  define('NOREQUIREAJAX', '1');
+// Same convention as the core ajax endpoints (core/ajax/*.php): without this, every
+// call would rotate the session token and invalidate the one held by the page.
+if (!defined('NOTOKENRENEWAL')) define('NOTOKENRENEWAL', '1');
 
 // Bootstrap Dolibarr
 require_once '../../main.inc.php';
@@ -52,6 +55,28 @@ if (!getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1)) {
 $action = GETPOST('action', 'alpha');
 $siren = GETPOST('siren', 'alpha');
 $socid = GETPOST('socid', 'int');
+
+// CSRF: update_tiers writes to the database, so it must be POSTed with a valid session
+// token. The read-only lookups stay on GET. Both session tokens are accepted because
+// Dolibarr keeps token/newtoken in step differently depending on
+// MAIN_SECURITY_CSRF_TOKEN_RENEWAL_ON_EACH_CALL.
+if ($action === 'update_tiers') {
+	$sent_token = GETPOST('token', 'alpha');
+	$session_tokens = array_filter(array(
+		isset($_SESSION['token']) ? $_SESSION['token'] : '',
+		isset($_SESSION['newtoken']) ? $_SESSION['newtoken'] : '',
+	));
+	$is_post = (!empty($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST');
+	if (!$is_post || empty($sent_token) || !in_array($sent_token, $session_tokens, true)) {
+		http_response_code(403);
+		header('Content-Type: application/json');
+		echo json_encode(array(
+			'success' => false,
+			'error' => "Jeton de securite invalide ou expire. Rechargez la page et reessayez."
+		));
+		exit;
+	}
+}
 
 $client = new FacturelectClient($db);
 
