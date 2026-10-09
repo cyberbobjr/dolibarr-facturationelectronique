@@ -67,7 +67,7 @@ $sync_count = 0;
 $client_err_msg = '';
 
 // Whether importing incoming supplier invoices is allowed. When disabled, the user
-// can only download the raw PDF/XML of each invoice instead of importing it.
+// can only download the readable PDF of each invoice instead of importing it.
 $allow_import = getDolGlobalInt('FACTURELECT_ALLOW_IMPORT', 1);
 
 // Handle selective sync action (guarded server-side by the allow-import setting)
@@ -388,7 +388,7 @@ if ($num > 0) {
 			print '  <td data-label="Statut Import" align="center"><span class="fe-status-pill warning" style="font-size: 10px;">' . $langs->trans("FacturelectNotImported") . '</span></td>';
 		}
 
-		// Action column — download the raw PDF/XML file received from the network
+		// Action column — download the readable PDF, including PDFs embedded in UBL XML
 		$dl_url = dol_buildpath('/facturationelectronique/download_inbound_invoice.php', 1) . '?id=' . urlencode($pdp_id);
 		print '<td align="center"><a class="fe-btn fe-btn-secondary fe-btn-sm" href="' . $dl_url . '"><span class="fa fa-download"></span> ' . $langs->trans("FacturelectDownloadPdf") . '</a></td>';
 

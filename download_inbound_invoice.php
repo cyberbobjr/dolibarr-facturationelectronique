@@ -18,7 +18,7 @@
 /**
  *	\file       htdocs/custom/facturationelectronique/download_inbound_invoice.php
  *	\ingroup    facturationelectronique
- *	\brief      Streams the raw PDF/XML file of an incoming network invoice to the browser
+ *	\brief      Streams the readable PDF of an incoming network invoice to the browser
  */
 
 // Bootstrap Dolibarr
@@ -26,6 +26,9 @@ require_once '../../main.inc.php';
 
 if (!class_exists('FacturelectClient')) {
 	require_once './class/facturelectclient.class.php';
+}
+if (!class_exists('FacturelectInvoiceFile')) {
+	require_once __DIR__.'/class/facturelectinvoicefile.class.php';
 }
 
 // Access control: read right on supplier invoices is required
@@ -53,18 +56,19 @@ if ($content === false || $content === null || $content === '') {
 	httponly_accessforbidden($err, 500);
 }
 
-// Detect the file type from its binary signature (endpoint returns PDF or XML)
-$is_pdf = (substr($content, 0, 4) === '%PDF');
-$extension = $is_pdf ? 'pdf' : 'xml';
-$mime_type = $is_pdf ? 'application/pdf' : 'application/xml';
-$filename = 'facture_reseau_' . $pdp_id . '.' . $extension;
+$content = FacturelectInvoiceFile::readablePdf($content);
+if ($content === false) {
+	$langs->load('facturation_electronique@facturationelectronique');
+	httponly_accessforbidden($langs->trans('FacturelectReadablePdfUnavailable'), 422);
+}
+$filename = 'facture_reseau_' . $pdp_id . '.pdf';
 
 // Discard any buffered output before streaming the binary file
 while (ob_get_level()) {
 	ob_end_clean();
 }
 
-top_httphead($mime_type);
+top_httphead('application/pdf');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 header('Content-Length: ' . strlen($content));
 header('Cache-Control: private, max-age=0, must-revalidate');
