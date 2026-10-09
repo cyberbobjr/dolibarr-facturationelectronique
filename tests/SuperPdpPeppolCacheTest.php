@@ -132,4 +132,41 @@ class SuperPdpPeppolCacheTest extends TestCase
 			rmdir($file);
 		}
 	}
+
+	/** @dataProvider malformedEntries */
+	public function testMalformedEntriesAreNotPersisted($entries)
+	{
+		$this->provider->response = array('data' => $entries);
+		$this->provider->getCompanyEntries('123456789');
+		$this->provider->getCompanyEntries('123456789');
+		$this->assertSame(2, $this->provider->calls);
+		$this->assertSame(array(), glob(DOL_DATA_ROOT.'/facturationelectronique/peppol-cache/*.json'));
+	}
+
+	/** @dataProvider malformedEntries */
+	public function testExistingMalformedEntriesAreIgnoredAndReplaced($entries)
+	{
+		$this->provider->getCompanyEntries('123456789');
+		$file = glob(DOL_DATA_ROOT.'/facturationelectronique/peppol-cache/*.json')[0];
+		$cached = json_decode(file_get_contents($file), true);
+		$cached['response']['data'] = $entries;
+		file_put_contents($file, json_encode($cached));
+		$this->assertSame($this->provider->response, $this->provider->getCompanyEntries('123456789'));
+		$this->assertSame(2, $this->provider->calls);
+		$this->provider->getCompanyEntries('123456789');
+		$this->assertSame(2, $this->provider->calls);
+	}
+
+	/** @return array Invalid directory entry collections */
+	public static function malformedEntries()
+	{
+		return array(
+			'boolean entry' => array(array(false)),
+			'null entry' => array(array(null)),
+			'string entry' => array(array('invalid')),
+			'numeric entry' => array(array(42)),
+			'associative collection' => array(array('entry' => array('identifier' => '123456789'))),
+			'mixed entries' => array(array(array('identifier' => '123456789'), false)),
+		);
+	}
 }

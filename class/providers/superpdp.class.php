@@ -204,8 +204,8 @@ class SuperPdpProvider extends BaseFacturelectProvider
 				getDolGlobalString($credential_prefix.'ID'), getDolGlobalString($credential_prefix.'SECRET'))));
 			$cache_file = DOL_DATA_ROOT.'/facturationelectronique/peppol-cache/'.$key.'.json';
 			$cached = is_file($cache_file) ? json_decode((string) @file_get_contents($cache_file), true) : null;
-			if (is_array($cached) && isset($cached['stored_at'], $cached['response']['data'])
-				&& is_int($cached['stored_at']) && is_array($cached['response']['data'])
+			if (is_array($cached) && isset($cached['stored_at'], $cached['response'])
+				&& is_int($cached['stored_at']) && $this->isCacheableDirectoryResponse($cached['response'])
 				&& $cached['stored_at'] <= time() && time() - $cached['stored_at'] < $ttl) {
 				$this->error = '';
 				$this->lastHttpExchange = array();
@@ -214,7 +214,7 @@ class SuperPdpProvider extends BaseFacturelectProvider
 		}
 
 		$response = $this->callApi('GET', '/french_directory/entries', array('number' => $clean_siren));
-		if ($cache_file !== '' && is_array($response) && isset($response['data']) && is_array($response['data'])) {
+		if ($cache_file !== '' && $this->isCacheableDirectoryResponse($response)) {
 			$cache_dir = dirname($cache_file);
 			if (dol_mkdir($cache_dir) >= 0) {
 				$temp = @tempnam($cache_dir, 'peppol-');
@@ -230,6 +230,25 @@ class SuperPdpProvider extends BaseFacturelectProvider
 			dol_syslog('SuperPdpProvider::getCompanyEntries: unable to persist PEPPOL cache', LOG_WARNING);
 		}
 		return $response;
+	}
+
+	/**
+	 * Check the entry collection before retaining or replaying a directory response.
+	 *
+	 * @param mixed $response Decoded provider response
+	 * @return bool True for a list of entry arrays, including an empty list
+	 */
+	private function isCacheableDirectoryResponse($response)
+	{
+		if (!is_array($response) || !isset($response['data']) || !is_array($response['data']) || !array_is_list($response['data'])) {
+			return false;
+		}
+		foreach ($response['data'] as $entry) {
+			if (!is_array($entry)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
