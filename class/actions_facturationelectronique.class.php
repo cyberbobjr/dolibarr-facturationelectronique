@@ -31,6 +31,9 @@ if (!class_exists('VatexMapper')) {
 if (!class_exists('FacturelectB2cResolver')) {
 	require_once dirname(__FILE__) . '/b2cresolver.class.php';
 }
+if (!class_exists('FacturelectTransmissionFields')) {
+	require_once dirname(__FILE__) . '/facturelecttransmissionfields.class.php';
+}
 
 /**
  *	Class ActionsFacturationElectronique
@@ -1510,14 +1513,12 @@ class ActionsFacturationelectronique extends CommonHookActions
 		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
 			return 0;
 		}
+		// Safety net after the BILL_CREATE trigger: the next situation invoice form of some
+		// Dolibarr versions re-applies the posted extrafields once the invoice is created (#34)
 		if (is_object($object) && $object->element === 'facture') {
-			$object->array_options['options_facturelect_invoice_id'] = '';
-			$object->array_options['options_facturelect_status'] = 'not_sent';
-			$object->array_options['options_facturelect_send_date'] = '';
-
-			$object->updateExtraField('facturelect_invoice_id');
-			$object->updateExtraField('facturelect_status');
-			$object->updateExtraField('facturelect_send_date');
+			foreach (FacturelectTransmissionFields::reset($object) as $key) {
+				$object->updateExtraField($key);
+			}
 		}
 		return 0;
 	}

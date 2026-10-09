@@ -431,7 +431,7 @@ class modFacturationElectronique extends DolibarrModules
 			'',
 			1,
 			'',
-			'-1',
+			'5',
 			'Technical ID of the invoice on the PDP',
 			'',
 			'',
@@ -451,7 +451,7 @@ class modFacturationElectronique extends DolibarrModules
 			array('options' => array('not_sent' => 'Non envoyee', 'queued' => 'En file d attente', 'transmitted' => 'Transmise', 'failed' => 'Echec')),
 			1,
 			'',
-			'-1',
+			'5',
 			'Transmission status to SuperPDP',
 			'',
 			'',
@@ -471,7 +471,7 @@ class modFacturationElectronique extends DolibarrModules
 			'',
 			1,
 			'',
-			'-1',
+			'5',
 			'Transmission date to SuperPDP',
 			'',
 			'',
@@ -517,6 +517,13 @@ class modFacturationElectronique extends DolibarrModules
 			'',
 			'facturation_electronique@facturationelectronique'
 		);
+
+		// addExtraField() does not alter existing fields: hide the transmission fields from the
+		// create/edit forms on installs made before #34 (5 = visible on list and view only)
+		$sql_visibility = "UPDATE " . MAIN_DB_PREFIX . "extrafields SET list = '5'";
+		$sql_visibility .= " WHERE elementtype = 'facture'";
+		$sql_visibility .= " AND name IN ('facturelect_invoice_id', 'facturelect_status', 'facturelect_send_date')";
+		$this->db->query($sql_visibility);
 
 		// 3. Supplier invoice extrafields
 		$extrafields->addExtraField(
