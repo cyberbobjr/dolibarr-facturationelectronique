@@ -89,13 +89,35 @@ class GenerateChangelogTest extends TestCase
 		$this->assertSame(0, $this->generate(false, array('PATH' => $this->moduleDir.'/bin:'.getenv('PATH'))));
 		$content = file_get_contents($this->moduleDir.'/CHANGELOG.md');
 		$this->assertStringNotContainsString('[Unreleased]', $content);
-		$this->assertStringContainsString('## [1.11.0-beta.1]', $content);
+		$this->assertStringContainsString('## [1.11.0]', $content);
 		$this->assertStringContainsString('Choose a buyer address for each invoice.', $content);
 		$this->assertStringContainsString('#### ✨ Added', $content);
 		$this->assertStringContainsString('(abcdef0) by Fixture Author', $content);
 		$this->assertStringContainsString('(be2d118)', $content);
 		$this->assertSame('', file_get_contents($this->moduleDir.'/build/unreleased_notes.md'));
 		$this->assertStringContainsString('Choose a buyer address for each invoice.', file_get_contents($this->moduleDir.'/build/release_notes.md'));
+	}
+	/** @return void */
+	public function testStableMaintenanceDoesNotWriteReleaseArtifacts()
+	{
+		file_put_contents($this->moduleDir.'/core/modules/modFacturationElectronique.class.php', '<?php $this->version = "1.10.1";');
+		$this->assertSame(0, $this->generate());
+		file_put_contents($this->moduleDir.'/build/release_notes.md', 'Existing release notes');
+		file_put_contents($this->moduleDir.'/build/github_output', 'Existing outputs');
+		$paths = array('CHANGELOG.md', 'core/modules/modFacturationElectronique.class.php', 'build/unreleased_notes.md', 'build/release_notes.md', 'build/github_output');
+		$before = array();
+		foreach ($paths as $path) { $before[$path] = file_get_contents($this->moduleDir.'/'.$path); }
+		mkdir($this->moduleDir.'/bin');
+		$git = "#!/bin/sh\ncase \"$1\" in\n describe) echo v1.10.1 ;;\n log) printf '%s\\n' 'abcdef0|docs: update guide|Fixture Author|2026-10-09T12:00:00+02:00' 'abcdef1|chore: tidy build|Fixture Author|2026-10-09T12:00:00+02:00' ;;\n *) exit 1 ;;\nesac\n";
+		file_put_contents($this->moduleDir.'/bin/git', $git);
+		chmod($this->moduleDir.'/bin/git', 0755);
+		$environment = array('PATH' => $this->moduleDir.'/bin:'.getenv('PATH'), 'GITHUB_OUTPUT' => $this->moduleDir.'/build/github_output');
+		$this->assertSame(0, $this->generate(false, $environment));
+		$this->assertSame(0, $this->generate(false, $environment));
+		foreach ($before as $path => $content) { $this->assertSame($content, file_get_contents($this->moduleDir.'/'.$path), $path); }
+		unlink($this->moduleDir.'/build/release_notes.md');
+		$this->assertSame(0, $this->generate(false, $environment));
+		$this->assertFileDoesNotExist($this->moduleDir.'/build/release_notes.md');
 	}
 
 }

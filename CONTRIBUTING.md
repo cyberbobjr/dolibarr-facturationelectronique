@@ -35,12 +35,12 @@ git commit -m "chore(release): bump version and update CHANGELOG"
 git push
 ```
 
-Le script calcule automatiquement la nouvelle version sémantique (SemVer) à partir des commits depuis le dernier tag : *Breaking change* → **majeure**, `feat` → **mineure**, `fix`/`chore` → incrément du **compteur de pré-release**. Le canal de pré-release (`beta`) est défini par la constante `$targetChannel` en tête de `build/generate_changelog.php`.
+Le script calcule automatiquement la nouvelle version sémantique (SemVer) à partir des commits depuis le dernier tag : *Breaking change* → **majeure**, `feat` → **mineure**, `fix` → **correctif**. Les commits de documentation ou de maintenance seuls ne changent pas la version stable. Le canal stable est défini par `$targetChannel = ''` dans `build/generate_changelog.php`.
 
 **b. Au merge sur `main`**, le pipeline `Create Release` s'exécute en **lecture seule** :
 - il lit la version déjà bumpée dans le descripteur (aucune écriture sur `main`) ;
 - il extrait les notes de version depuis `CHANGELOG.md` ;
-- il crée le tag Git `vX.Y.Z-beta.N`, génère l'archive ZIP propre (sans les fichiers de test/dev) et publie la release GitHub.
+- il crée le tag Git `vX.Y.Z`, génère l'archive ZIP propre (sans les fichiers de test/dev) et publie la release GitHub stable.
 
 > Si la version n'a pas été bumpée dans la PR, aucun nouveau tag n'existe côté release : le pipeline détecte que le tag est déjà présent (ou inchangé) et ne republie rien. Pensez donc bien à exécuter l'étape **a** dans chaque PR qui doit donner lieu à une livraison.
 

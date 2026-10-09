@@ -146,7 +146,12 @@ foreach ($commits as $commitLine) {
 //
 // Pre-release channel emitted for the NEXT version. Set to 'beta' during the beta
 // phase, 'alpha' for early builds, or '' to promote the line to a stable release.
-$targetChannel = 'beta';
+$targetChannel = '';
+
+if ($targetChannel === '' && preg_match('/^\d+\.\d+\.\d+$/', $currentVersion) && !$hasBreakingChange && !$hasFeature && !$hasFix) {
+	echo "No version-changing commits for the stable release. Nothing to do.\n";
+	exit(0);
+}
 
 $versionBase = '';
 $currentChannel = '';

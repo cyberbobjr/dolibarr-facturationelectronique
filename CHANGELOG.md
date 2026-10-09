@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
-## [Unreleased]
+## [1.10.1] - 2026-10-09
+
+### Release
+
+- Promote the tested beta line to the first stable production release, without changing business behavior or the database schema.
+- Switch future changelog generation to stable semantic versions and update installation and release documentation.
+- Include all capabilities and fixes delivered in the alpha and beta releases below, including readable supplier PDF downloads from UBL attachments.
 
 ### ✨ Added
 
@@ -18,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### 🐛 Fixed
 
+- Leave stable release artifacts unchanged when changelog generation finds only documentation or maintenance commits, preserving pending notes without duplicate version sections.
 - Block production transmissions to missing or inactive buyer addresses, including bare SIREN fallbacks when the recipient publishes only suffixed addresses.
 - Share buyer address resolution between payload generation, routing validation and diagnostics to prevent divergent destinations.
 - Distinguish missing associations, inactive or absent addresses and empty directory results in invoice warnings; show only active reception addresses as selectable choices.
