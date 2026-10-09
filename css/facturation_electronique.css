@@ -789,3 +789,10 @@ pre::-webkit-scrollbar-track {
 .fe-buyer-address-dialog::backdrop {
 	background: rgba(15, 23, 42, 0.45);
 }
+
+.fe-invoice-status-banner { margin-bottom: 20px; align-items: flex-start; }
+.fe-invoice-status-content { flex: 1; min-width: 0; }
+.fe-invoice-status-content p { margin: 6px 0 12px; }
+.fe-invoice-status-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.fe-invoice-status-actions .butAction { margin: 0; white-space: normal; }
+.fe-invoice-diagnostic-link { text-decoration: underline; }

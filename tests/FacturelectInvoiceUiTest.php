@@ -135,5 +135,73 @@ class FacturelectInvoiceUiTest extends TestCase
 		$readonly = $this->rowDocument($this->render('buyer_address', false, false));
 		$this->assertSame(0, $readonly->query('//dialog | //button[@id="fe-buyer-address-edit"]')->length);
 	}
+	/** @param array $changes Scenario overrides @return string Rendered status panel */
+	private function renderStatus($changes = array())
+	{
+		global $user;
+		$user = (object) array('admin' => true, 'socid' => 0);
+		$langs = new Translate();
+		$object = (object) array('id' => 44, 'statut' => 1);
+		$seller_siren_invalid = false;
+		$buyer_siren_invalid = false;
+		$buyer_siren = '200058485';
+		$is_b2c = false;
+		$pdp_status = 'not_sent';
+		$pdp_id = '';
+		$formatted_date = '';
+		$routing_verdict = null;
+		$fe_routing_check_enabled = true;
+		$fe_can_associate = true;
+		$fe_can_choose_address = true;
+		$thirdparty_id = 8;
+		extract($changes);
+		ob_start();
+		require dirname(__DIR__).'/tpl/invoice_status.tpl.php';
+		return ob_get_clean();
+	}
+
+	/** @return void */
+	public function testInvoiceStatusHasOneContextualPanelAndNoDuplicateAssociation()
+	{
+		$cases = array(
+			array(array('buyer_siren_invalid' => true, 'buyer_siren' => ''), 'FacturelectCompleteBuyerTitle', 'fe-status-associate', 'fe-alert-info'),
+			array(array('buyer_siren_invalid' => true, 'buyer_siren' => '20005848500018'), 'FacturelectCompleteBuyerTitle', 'fe-status-associate', 'fe-alert-info'),
+			array(array('buyer_siren_invalid' => true, 'routing_verdict' => array('status' => 'inactive')), 'FacturelectCompleteBuyerTitle', 'fe-status-associate', 'fe-alert-info'),
+			array(array(), 'FacturelectPrepareSendTitle', '', 'fe-alert-info'),
+			array(array('routing_verdict' => array('status' => 'ok')), 'FacturelectRecipientCompleteTitle', '', 'fe-alert-info'),
+			array(array('routing_verdict' => array('status' => 'inactive')), 'FacturelectChooseRecipientTitle', 'fe-status-address', 'fe-alert-warning'),
+			array(array('routing_verdict' => array('status' => 'error')), 'FacturelectPrepareSendTitle', '', 'fe-alert-info'),
+			array(array('seller_siren_invalid' => true, 'buyer_siren_invalid' => true), 'FacturelectCompleteSellerTitle', 'fe-status-company', 'fe-alert-info'),
+			array(array('pdp_status' => 'failed', 'buyer_siren_invalid' => true), 'FacturelectCompleteBuyerTitle', 'fe-status-associate', 'fe-alert-info'),
+			array(array('pdp_status' => 'failed'), 'FacturelectSendFailedTitle', '', 'fe-alert-warning'),
+			array(array('object' => (object) array('id' => 44, 'statut' => 0)), 'FacturelectDraftTitle', '', 'fe-alert-info'),
+			array(array('is_b2c' => true), 'FacturelectB2cNoteTitle', '', 'fe-alert-info'),
+			array(array('pdp_status' => 'transmitted', 'pdp_id' => '<unsafe>', 'buyer_siren_invalid' => true), 'FacturelectDepositedTitle', '', 'fe-alert-success'),
+			array(array('pdp_status' => 'queued'), 'FacturelectQueuedTitle', '', 'fe-alert-info'),
+		);
+		foreach ($cases as $case) {
+			$html = $this->renderStatus($case[0]);
+			$this->assertSame(1, substr_count($html, 'fe-invoice-status-banner'));
+			$this->assertStringContainsString($case[1], $html);
+			$this->assertStringContainsString($case[3], $html);
+			$this->assertSame($case[2] === 'fe-status-associate' ? 1 : 0, substr_count($html, 'feOpenModal('));
+			if ($case[2] !== '') { $this->assertStringContainsString('id="'.$case[2].'"', $html); }
+			$this->assertStringContainsString('FacturelectTransmissionDetails', $html);
+			$this->assertStringNotContainsString('<unsafe>', $html);
+		}
+	}
+
+	/** @return void */
+	public function testStatusCorrectionRespectsPermissionsAndDisabledLookup()
+	{
+		$html = $this->renderStatus(array('buyer_siren_invalid' => true, 'fe_can_associate' => false));
+		$this->assertStringNotContainsString('feOpenModal(', $html);
+		$this->assertStringContainsString('/societe/card.php?socid=8', $html);
+		$html = $this->renderStatus(array('routing_verdict' => array('status' => 'inactive'), 'fe_can_choose_address' => false));
+		$this->assertStringNotContainsString('fe-status-address', $html);
+		$html = $this->renderStatus(array('fe_routing_check_enabled' => false));
+		$this->assertStringContainsString('FacturelectPrepareSendBody', $html);
+		$this->assertStringNotContainsString('FacturelectRecipientAutoCheck', $html);
+	}
 
 }
