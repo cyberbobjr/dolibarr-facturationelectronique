@@ -49,6 +49,7 @@ FacturelectNotImported=Non importée
 FacturelectFeatureAllowImport=Autoriser l'import des factures
 FacturelectFeatureAllowImportDesc=Lorsque cette option est activée, les factures fournisseurs reçues sur le réseau peuvent être importées (manuellement ou via la tâche planifiée) sous forme de brouillons. Si elle est désactivée, l'import est bloqué et vous pouvez uniquement télécharger le PDF/XML de chaque facture reçue.
 FacturelectDownloadPdf=Télécharger le PDF
+FacturelectReadablePdfUnavailable=Aucun PDF lisible identifiable dans cette facture électronique. Le document peut être absent, invalide ou contenir plusieurs PDF sans indication du document principal.
 FacturelectImportDisabledInfo=L'import des factures est désactivé. Vous pouvez télécharger le fichier PDF/XML de chaque facture reçue, mais aucune facture fournisseur n'est créée dans Dolibarr. Activez « Autoriser l'import des factures » dans la configuration du module pour réactiver l'import.
 FacturelectImportDisabledError=L'import des factures est désactivé dans la configuration du module. Impossible d'importer les factures sélectionnées.
 FacturelectOutboundListTitle=Factures Réseau Émises (Ventes)

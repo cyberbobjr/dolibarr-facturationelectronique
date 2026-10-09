@@ -49,6 +49,7 @@ FacturelectNotImported=Not imported
 FacturelectFeatureAllowImport=Allow invoice import
 FacturelectFeatureAllowImportDesc=When enabled, supplier invoices received on the network can be imported (manually or via the scheduled task) as drafts. When disabled, import is blocked and you can only download the PDF/XML file of each received invoice.
 FacturelectDownloadPdf=Download PDF
+FacturelectReadablePdfUnavailable=No readable PDF could be identified in this electronic invoice. The document may be missing, invalid or contain multiple PDFs without a designated main document.
 FacturelectImportDisabledInfo=Invoice import is disabled. You can download the PDF/XML file of each received invoice, but no supplier invoice is created in Dolibarr. Enable "Allow invoice import" in the module configuration to re-enable importing.
 FacturelectImportDisabledError=Invoice import is disabled in the module configuration. Cannot import the selected invoices.
 FacturelectOutboundListTitle=Outbound Network Invoices (Sales)

@@ -32,6 +32,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Require POST for all transmission and status synchronization actions and reject invoices outside validated/paid states. Use recent persisted evidence for invoice-card routing banners, reconcile existing PDP invoice responses in diagnostics, and roll back invoice creation when transmission-field resets cannot be saved.
 
+## [1.10.1-beta.1] - 2026-10-09
+
+### 🐛 Fixed
+
+- Download the readable supplier invoice PDF from the incoming invoice list when the original file is UBL XML containing an embedded PDF.
+- Preserve directly received PDFs, prefer the attachment designated LISIBLE, and return an explicit error for missing, invalid or ambiguous readable documents.
+- Reject XML DTDs and entity expansion while extracting embedded invoice and credit-note PDFs.
+
 ## [1.10.0-beta.2] - 2026-10-09
 
 ### 🐛 Fixed
