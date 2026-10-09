@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Download the readable supplier invoice PDF from the incoming invoice list when the original file is UBL XML containing an embedded PDF.
 - Preserve directly received PDFs, prefer the attachment designated LISIBLE, and return an explicit error for missing, invalid or ambiguous readable documents.
+- Reject a LISIBLE attachment with a missing or non-PDF MIME type before considering a PDF annex as a fallback.
 - Reject XML DTDs and entity expansion while extracting embedded invoice and credit-note PDFs.
 
 ## [1.10.0-beta.2] - 2026-10-09

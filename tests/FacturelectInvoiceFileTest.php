@@ -39,6 +39,24 @@ class FacturelectInvoiceFileTest extends TestCase
 	}
 
 	/** @return void */
+	public function testNonPdfReadableAttachmentMustNotFallBackToAnAnnex()
+	{
+		foreach (array('text/plain', '') as $mime) {
+			$xml = $this->invoice($this->attachment(base64_encode(self::PDF), 'LISIBLE', $mime)
+				.$this->attachment(base64_encode(self::PDF), 'Annexe'));
+			$this->assertFalse(FacturelectInvoiceFile::readablePdf($xml));
+		}
+	}
+
+	/** @return void */
+	public function testNonPdfAnnexDoesNotPreventReadablePdfDownload()
+	{
+		$xml = $this->invoice($this->attachment(base64_encode('annex'), 'Annexe', 'text/plain')
+			.$this->attachment(base64_encode(self::PDF), 'LISIBLE'));
+		$this->assertSame(self::PDF, FacturelectInvoiceFile::readablePdf($xml));
+	}
+
+	/** @return void */
 	public function testUnusableOrAmbiguousDocumentsAreRejected()
 	{
 		foreach (array('', '<broken', '{"error":"failed"}', $this->invoice(''),

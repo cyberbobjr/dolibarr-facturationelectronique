@@ -32,12 +32,18 @@ class FacturelectInvoiceFile
 			$xpath->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
 			$xpath->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
 			$attachments = $xpath->query('/*[self::inv:Invoice or self::credit:CreditNote]/cac:AdditionalDocumentReference'
-				.'/cac:Attachment/cbc:EmbeddedDocumentBinaryObject[@mimeCode="application/pdf"]');
+				.'/cac:Attachment/cbc:EmbeddedDocumentBinaryObject');
 			$pdfs = array();
 			$readable = array();
 			foreach ($attachments as $attachment) {
 				$label = $xpath->evaluate('string(cbc:DocumentDescription)', $attachment->parentNode->parentNode);
 				$is_readable = strtoupper(trim($label)) === 'LISIBLE';
+				if ($attachment->getAttribute('mimeCode') !== 'application/pdf') {
+					if ($is_readable) {
+						return false;
+					}
+					continue;
+				}
 				$pdf = base64_decode(preg_replace('/\s+/', '', $attachment->textContent), true);
 				if ($pdf === false || substr($pdf, 0, 5) !== '%PDF-') {
 					if ($is_readable) {
