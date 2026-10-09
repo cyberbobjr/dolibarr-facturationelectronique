@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand */
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr> */
 
 require_once __DIR__.'/facturelectdiagnostic.class.php';
 require_once __DIR__.'/b2cresolver.class.php';

@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  */
 
 require_once '../../main.inc.php';

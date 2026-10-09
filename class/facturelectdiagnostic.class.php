@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand */
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr> */
 
 require_once __DIR__.'/facturelectlog.class.php';
 require_once __DIR__.'/facturelectpeppolid.class.php';

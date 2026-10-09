@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
