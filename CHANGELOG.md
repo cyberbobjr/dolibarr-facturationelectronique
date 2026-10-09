@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
-## [Unreleased]
+## [1.10.1] - 2026-10-09
+
+### Release
+
+- Promote the tested beta line to the first stable production release, without changing business behavior or the database schema.
+- Switch future changelog generation to stable semantic versions and update installation and release documentation.
+- Include all capabilities and fixes delivered in the alpha and beta releases below, including readable supplier PDF downloads from UBL attachments.
 
 ### ✨ Added
 

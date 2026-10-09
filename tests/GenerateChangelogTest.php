@@ -89,7 +89,7 @@ class GenerateChangelogTest extends TestCase
 		$this->assertSame(0, $this->generate(false, array('PATH' => $this->moduleDir.'/bin:'.getenv('PATH'))));
 		$content = file_get_contents($this->moduleDir.'/CHANGELOG.md');
 		$this->assertStringNotContainsString('[Unreleased]', $content);
-		$this->assertStringContainsString('## [1.11.0-beta.1]', $content);
+		$this->assertStringContainsString('## [1.11.0]', $content);
 		$this->assertStringContainsString('Choose a buyer address for each invoice.', $content);
 		$this->assertStringContainsString('#### ✨ Added', $content);
 		$this->assertStringContainsString('(abcdef0) by Fixture Author', $content);

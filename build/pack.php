@@ -64,7 +64,8 @@ $excludes = array(
 	'tests',
 	'phpunit.xml',
 	'.phpunit.result.cache',
-	'.phpunit.cache'
+	'.phpunit.cache',
+	'.ruff_cache'
 );
 
 echo "Copying files to staging directory...\n";
