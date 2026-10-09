@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,9 +21,14 @@
  *  \brief      Trigger to automatically report payment events to SuperPDP
  */
 
-require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
+if (!class_exists('DolibarrTriggers')) {
+	require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
+}
 if (!class_exists('FacturelectClient')) {
 	require_once dirname(dirname(dirname(__FILE__))).'/class/facturelectclient.class.php';
+}
+if (!class_exists('FacturelectTransmissionFields')) {
+	require_once dirname(dirname(dirname(__FILE__))).'/class/facturelecttransmissionfields.class.php';
 }
 
 /**
@@ -61,6 +66,24 @@ class InterfaceFacturationElectroniqueTriggers extends DolibarrTriggers
 		if (empty($conf->facturationelectronique->enabled)) {
 			return 0;
 		}
+
+		// 0. Customer Invoice Created: a new invoice has never been transmitted, even when Dolibarr
+		// copied the extrafields of its source invoice (next situation invoice, clone...) (#34).
+		// Done even when transmission is disabled, otherwise the stale PDP data reappears once enabled.
+		if ($action === 'BILL_CREATE') {
+			if (is_object($object) && $object->element === 'facture') {
+				foreach (FacturelectTransmissionFields::reset($object) as $key) {
+					if ($object->updateExtraField($key) < 0) {
+						$langs->load('facturation_electronique@facturationelectronique');
+						$this->error = $langs->trans('FacturelectResetError', $key, $object->error);
+						dol_syslog("FacturationElectroniqueTriggers error: Failed to reset ".$key." on new invoice ".$object->id.". ".$object->error, LOG_ERR);
+						return -1;
+					}
+				}
+			}
+			return 0;
+		}
+
 		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
 			return 0;
 		}

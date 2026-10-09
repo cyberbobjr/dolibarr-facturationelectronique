@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ class modFacturationElectronique extends DolibarrModules
 		$this->description = "Module de facturation electronique B2B via SuperPDP (Factur-X, UBL, CII)";
 		$this->descriptionlong = "Conformite facturation B2B francaise. Liaison tiers a l'annuaire national, conversion en Factur-X et transmission securisee de factures clients, et recuperation automatique de factures d'achat.";
 
-		$this->version = '1.10.0-beta.1';
+		$this->version = '1.10.0-beta.2';
 
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'fa-file-invoice-dollar';
@@ -418,6 +418,27 @@ class modFacturationElectronique extends DolibarrModules
 		);
 
 		// 2. Customer invoice extrafields
+		// Full scheme:value address, edited only through the active-directory selector.
+		$extrafields->addExtraField(
+			'facturelect_buyer_address',
+			'FacturelectBuyerAddress',
+			'varchar',
+			106,
+			255,
+			'facture',
+			0,
+			0,
+			'',
+			'',
+			1,
+			'',
+			'5',
+			'FacturelectBuyerAddressHelp',
+			'',
+			'',
+			'facturation_electronique@facturationelectronique'
+		);
+
 		$extrafields->addExtraField(
 			'facturelect_invoice_id',
 			'ID Facture PDP',
@@ -431,7 +452,7 @@ class modFacturationElectronique extends DolibarrModules
 			'',
 			1,
 			'',
-			'-1',
+			'5',
 			'Technical ID of the invoice on the PDP',
 			'',
 			'',
@@ -451,7 +472,7 @@ class modFacturationElectronique extends DolibarrModules
 			array('options' => array('not_sent' => 'Non envoyee', 'queued' => 'En file d attente', 'transmitted' => 'Transmise', 'failed' => 'Echec')),
 			1,
 			'',
-			'-1',
+			'5',
 			'Transmission status to SuperPDP',
 			'',
 			'',
@@ -471,7 +492,7 @@ class modFacturationElectronique extends DolibarrModules
 			'',
 			1,
 			'',
-			'-1',
+			'5',
 			'Transmission date to SuperPDP',
 			'',
 			'',
@@ -517,6 +538,13 @@ class modFacturationElectronique extends DolibarrModules
 			'',
 			'facturation_electronique@facturationelectronique'
 		);
+
+		// addExtraField() does not alter existing fields: hide the transmission fields from the
+		// create/edit forms on installs made before #34 (5 = visible on list and view only)
+		$sql_visibility = "UPDATE " . MAIN_DB_PREFIX . "extrafields SET list = '5'";
+		$sql_visibility .= " WHERE elementtype = 'facture'";
+		$sql_visibility .= " AND name IN ('facturelect_invoice_id', 'facturelect_status', 'facturelect_send_date')";
+		$this->db->query($sql_visibility);
 
 		// 3. Supplier invoice extrafields
 		$extrafields->addExtraField(

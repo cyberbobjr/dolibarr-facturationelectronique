@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -161,10 +161,10 @@ $cssurl = dol_buildpath('/facturationelectronique/css/facturation_electronique.c
 if (file_exists($cssfile)) {
 	$cssurl .= '?v=' . filemtime($cssfile);
 }
-llxHeader('', $langs->trans("FacturelectInboundListTitle"), '', '', '', '', array($cssurl));
+llxHeader('', $langs->trans("FacturelectInboundListTitle"), '', '', '', '', array(), array($cssurl));
 
 // Output container class for custom premium touches
-print '<div class="fe-container">';
+print '<div class="fe-container fe-invoice-list">';
 
 // Inform the user when import is disabled (download-only mode)
 if (!$allow_import) {
@@ -213,7 +213,8 @@ print_barre_liste(
 );
 
 print '<div class="div-table-responsive">';
-print '<table class="tagtable liste">'."\n";
+print '<table class="tagtable liste fe-invoice-table">'."\n";
+print '<colgroup><col style="width:3%"><col style="width:14%"><col style="width:16%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:12%"><col style="width:10%"></colgroup>';
 
 // Fields title search filters row
 print '<tr class="liste_titre_filter">';
@@ -268,9 +269,9 @@ print '</td>';
 print '</tr>'."\n";
 
 // List Headers
-print '<tr class="liste_titre">';
+print '<tr class="liste_titre fe-inbound-head">';
 if ($allow_import) {
-	print '<th class="liste_titre" align="center" style="width: 30px;"><input type="checkbox" id="check-all-inbound" onclick="feToggleAllInbound(this)"></th>';
+	print '<th class="liste_titre" align="center" style="width: 30px;"><label><input type="checkbox" id="check-all-inbound" aria-label="Tout sélectionner" onclick="feToggleAllInbound(this)"><span class="fe-inbound-select-label"> Tout sélectionner</span></label></th>';
 } else {
 	print '<th class="liste_titre" align="center" style="width: 30px;"></th>';
 }
@@ -346,7 +347,7 @@ if ($num > 0) {
 		}
 
 		// Réf Facture
-		print '<td style="font-weight: 600;">' . dol_escape_htmltag($inv_number) . '</td>';
+		print '<td data-label="Réf. Facture" style="font-weight: 600;">' . dol_escape_htmltag($inv_number) . '</td>';
 		
 		// Fournisseur
 		$supplier_display = dol_escape_htmltag($seller_name);
@@ -359,22 +360,22 @@ if ($num > 0) {
 		} else {
 			$supplier_display .= ' <span class="fe-status-pill warning" style="font-size: 9px; padding: 1px 4px; text-transform: none; font-weight: normal; margin-left: 5px;">' . $langs->trans("FacturelectThirdpartyNew") . '</span>';
 		}
-		print '<td>' . $supplier_display . '</td>';
+		print '<td data-label="Fournisseur"><span>' . $supplier_display . '</span></td>';
 		
 		// SIREN
-		print '<td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . (!empty($seller_siren) ? $seller_siren : '-') . '</code></td>';
+		print '<td data-label="SIREN"><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . (!empty($seller_siren) ? $seller_siren : '-') . '</code></td>';
 		
 		// Date Facture
-		print '<td align="center">' . $inv_date . '</td>';
+		print '<td data-label="Date Facture" align="center">' . $inv_date . '</td>';
 		
 		// Total HT
-		print '<td align="right" style="font-weight:600;">' . price($amount_ht, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
+		print '<td data-label="Montant HT" align="right" style="font-weight:600;">' . price($amount_ht, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
 		
 		// Total TTC
-		print '<td align="right" style="font-weight:700; color:#0f172a;">' . price($amount_ttc, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
+		print '<td data-label="Total TTC" align="right" style="font-weight:700; color:#0f172a;">' . price($amount_ttc, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
 		
 		// ID PDP
-		print '<td align="center"><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . $pdp_id . '</code></td>';
+		print '<td data-label="' . dol_escape_htmltag($langs->trans("FacturelectInvoiceId")) . '" align="center"><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . $pdp_id . '</code></td>';
 
 		// Statut Import
 		if ($is_imported) {
@@ -382,9 +383,9 @@ if ($num > 0) {
 			$fac = new FactureFournisseur($db);
 			$fac->fetch($fk_facture);
 			$ref_link = '<a href="' . DOL_URL_ROOT . '/fourn/facture/card.php?id=' . $fk_facture . '">' . img_object('', 'bill') . ' ' . dol_escape_htmltag($fac->ref) . '</a>';
-			print '  <td align="center"><span class="fe-status-pill success" style="font-size: 10px;">' . $langs->trans("FacturelectImported") . ' (' . $ref_link . ')</span></td>';
+			print '  <td data-label="Statut Import" align="center"><span class="fe-status-pill success" style="font-size: 10px;">' . $langs->trans("FacturelectImported") . ' (' . $ref_link . ')</span></td>';
 		} else {
-			print '  <td align="center"><span class="fe-status-pill warning" style="font-size: 10px;">' . $langs->trans("FacturelectNotImported") . '</span></td>';
+			print '  <td data-label="Statut Import" align="center"><span class="fe-status-pill warning" style="font-size: 10px;">' . $langs->trans("FacturelectNotImported") . '</span></td>';
 		}
 
 		// Action column — download the raw PDF/XML file received from the network

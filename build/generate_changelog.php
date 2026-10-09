@@ -3,7 +3,7 @@
  * Automated Changelog Generator and Semantic Versioning Calculator.
  * Parses git commits since the last tag (or initial commit) and:
  * 1. Categorizes commits (Features, Bug Fixes, Breaking Changes, etc.)
- * 2. Formats a new changelog entry in French.
+ * 2. Formats a new changelog entry in English.
  * 3. Prepends the entry to CHANGELOG.md.
  * 4. Automatically computes the new SemVer version.
  */
@@ -11,6 +11,53 @@
 $moduleDir = dirname(__DIR__);
 $descriptorPath = $moduleDir . '/core/modules/modFacturationElectronique.class.php';
 $changelogPath = $moduleDir . '/CHANGELOG.md';
+$unreleasedNotesPath = $moduleDir.'/build/unreleased_notes.md';
+
+$header = "# Changelog - B2B Electronic Invoicing\n\n";
+$header .= "All notable changes to this project will be documented in this file.\n\n";
+$header .= "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/).\n\n---\n\n";
+
+/**
+ * Normalize historical French metadata while preserving release references.
+ *
+ * @param string $content Existing changelog
+ * @param string $header Current English header
+ * @return string Release history without a duplicate preamble
+ */
+function facturelectChangelogHistory($content, $header)
+{
+	$legacyIntro = "Toutes les modifications notables apportées à ce projet seront consignées dans ce fichier.\n\n";
+	$legacyIntro .= "Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).\n\n---\n\n";
+	$content = str_replace(array($header, "# Journal des Modifications (Changelog) - Facturation Électronique B2B\n\n", $legacyIntro, rtrim($legacyIntro)), '', $content);
+	return strtr($content, array(
+		'### ⚠️ Changements Majeurs (Breaking Changes)' => '### ⚠️ Breaking Changes',
+		'### ✨ Nouvelles Fonctionnalités' => '### ✨ Added',
+		'### 🐛 Corrections de Bugs' => '### 🐛 Fixed',
+		' par benjaminmarchand' => ' by benjaminmarchand',
+		' par Benjamin MARCHAND' => ' by Benjamin MARCHAND',
+		'non-agréé DGFiP' => 'not DGFiP-accredited',
+		'ajout du token CSRF manquant dans les formulaires SuperPDP et FactPulse pour compatibilité avec Dolibarr 20+' => 'add the missing CSRF token to SuperPDP and FactPulse forms for Dolibarr 20+ compatibility',
+		'ajout du token CSRF manquant dans les formulaires SuperPDP et FactPulse' => 'add the missing CSRF token to SuperPDP and FactPulse forms',
+	));
+}
+
+// Draft notes document uncommitted work without bumping versions or creating release notes.
+if (in_array('--unreleased', $argv, true)) {
+	$notesPath = $unreleasedNotesPath;
+	if (!is_readable($notesPath) || trim(file_get_contents($notesPath)) === '') {
+		fwrite(STDERR, "Error: build/unreleased_notes.md is missing or empty.\n");
+		exit(1);
+	}
+	$history = file_exists($changelogPath) ? facturelectChangelogHistory(file_get_contents($changelogPath), $header) : '';
+	$history = preg_replace('/^## \[Unreleased\][^\n]*\n.*?(?=^## \[|\z)/ms', '', $history);
+	$content = $header."## [Unreleased]\n\n".trim(file_get_contents($notesPath))."\n\n".ltrim($history);
+	if (file_put_contents($changelogPath, rtrim($content)."\n") === false) {
+		fwrite(STDERR, "Error: failed to write CHANGELOG.md.\n");
+		exit(1);
+	}
+	echo "Updated English unreleased changelog; module version unchanged.\n";
+	exit(0);
+}
 
 echo "=== Dolibarr Module Changelog & Version Generator ===\n";
 
@@ -180,30 +227,31 @@ if (!empty($preReleaseSuffix)) {
 
 echo "Computed new version: " . $newVersion . "\n";
 
-// 5. Generate Markdown Changelog Section (in French)
+// 5. Generate Markdown Changelog Section (in English)
 $today = date('Y-m-d');
-$changelogEntry = "## [" . $newVersion . "] - " . $today . "\n\n";
+$releaseHeading = "## [" . $newVersion . "] - " . $today . "\n\n";
+$changelogEntry = $releaseHeading;
 
 if (!empty($categorized['breaking'])) {
-	$changelogEntry .= "### ⚠️ Changements Majeurs (Breaking Changes)\n";
+	$changelogEntry .= "### ⚠️ Breaking Changes\n";
 	foreach ($categorized['breaking'] as $c) {
-		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") par " . $c['author'] . "\n";
+		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") by " . $c['author'] . "\n";
 	}
 	$changelogEntry .= "\n";
 }
 
 if (!empty($categorized['feat'])) {
-	$changelogEntry .= "### ✨ Nouvelles Fonctionnalités\n";
+	$changelogEntry .= "### ✨ Added\n";
 	foreach ($categorized['feat'] as $c) {
-		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") par " . $c['author'] . "\n";
+		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") by " . $c['author'] . "\n";
 	}
 	$changelogEntry .= "\n";
 }
 
 if (!empty($categorized['fix'])) {
-	$changelogEntry .= "### 🐛 Corrections de Bugs\n";
+	$changelogEntry .= "### 🐛 Fixed\n";
 	foreach ($categorized['fix'] as $c) {
-		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") par " . $c['author'] . "\n";
+		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") by " . $c['author'] . "\n";
 	}
 	$changelogEntry .= "\n";
 }
@@ -211,7 +259,7 @@ if (!empty($categorized['fix'])) {
 if (!empty($categorized['docs'])) {
 	$changelogEntry .= "### 📝 Documentation\n";
 	foreach ($categorized['docs'] as $c) {
-		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") par " . $c['author'] . "\n";
+		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") by " . $c['author'] . "\n";
 	}
 	$changelogEntry .= "\n";
 }
@@ -220,23 +268,23 @@ if (!empty($categorized['refactor']) || !empty($categorized['chore'])) {
 	$changelogEntry .= "### 🔧 Maintenance & Refactoring\n";
 	$otherCommits = array_merge($categorized['refactor'], $categorized['chore']);
 	foreach ($otherCommits as $c) {
-		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") par " . $c['author'] . "\n";
+		$changelogEntry .= "- " . $c['msg'] . " (" . $c['hash'] . ") by " . $c['author'] . "\n";
 	}
 	$changelogEntry .= "\n";
 }
 
 // 6. Prepend Entry to CHANGELOG.md
-$header = "# Journal des Modifications (Changelog) - Facturation Électronique B2B\n\n";
-$header .= "Toutes les modifications notables apportées à ce projet seront consignées dans ce fichier.\n\n";
-$header .= "Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).\n\n---\n\n";
-
+$promotedUnreleased = false;
 if (file_exists($changelogPath)) {
 	$existingContent = file_get_contents($changelogPath);
-	// Remove old header if present
-	$cleanContent = str_replace($header, '', $existingContent);
-	// Ensure the separator line is clean
-	$cleanContent = preg_replace('/^# Journal des Modifications.*?\n\n/s', '', $cleanContent);
-	
+	$cleanContent = facturelectChangelogHistory($existingContent, $header);
+	if (preg_match('/^## \[Unreleased\][^\n]*\n(.*?)(?=^## \[|\z)/ms', $cleanContent, $pending)) {
+		$commitNotes = substr($changelogEntry, strlen($releaseHeading));
+		$changelogEntry = $releaseHeading.trim($pending[1])."\n\n### Commit history\n\n".str_replace('### ', '#### ', $commitNotes);
+		$cleanContent = str_replace($pending[0], '', $cleanContent);
+		$promotedUnreleased = true;
+	}
+
 	$newChangelog = $header . $changelogEntry . $cleanContent;
 } else {
 	$newChangelog = $header . $changelogEntry;
@@ -269,6 +317,12 @@ if (file_put_contents($descriptorPath, $newDescriptorContent) === false) {
 	die("Error: Failed to update version in descriptor.\n");
 }
 echo "Successfully updated version to " . $newVersion . " in descriptor.\n";
+
+// Consumed draft notes must not reappear as unreleased after publication.
+if ($promotedUnreleased && file_exists($unreleasedNotesPath) && file_put_contents($unreleasedNotesPath, '') === false) {
+	fwrite(STDERR, "Error: could not clear the promoted unreleased notes.\n");
+	exit(1);
+}
 
 // Output version to environment variables if running in GitHub Actions
 if (getenv('GITHUB_OUTPUT')) {

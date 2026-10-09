@@ -121,3 +121,53 @@ FacturelectB2cNoteTitle=Client particulier (B2C)
 FacturelectB2cNoteBody=Ce client est un particulier : il n'a pas de SIREN et n'entre pas dans le champ de la facturation électronique B2B (routage par SIREN). Ce type d'opération relève de l'e-reporting.
 
 
+
+# Buyer routing validation
+FacturelectRoutingOk=Adresse acheteur active : %s.
+FacturelectRoutingUnassociated=Tiers non associé : le SIREN nu %s ne correspond à aucune adresse active. Adresses actives : %s. Associez le tiers à l’adresse indiquée par le destinataire.
+FacturelectRoutingInactive=Adresse acheteur inactive ou réservée au retour technique : %s. Le destinataire ne peut pas recevoir à cette adresse. Adresses actives disponibles : %s. Vérifiez et associez le tiers.
+FacturelectRoutingMissing=Adresse acheteur absente des entrées actives : %s. Adresses actives : %s. Vérifiez et associez le tiers à l’adresse indiquée par le destinataire.
+FacturelectRoutingEmpty=Aucun enregistrement dans l’annuaire pour l’acheteur (%s). Le destinataire n’est pas prêt à recevoir. Demandez-lui son adresse de facturation active.
+FacturelectRoutingNot_ready=Aucune adresse de réception active pour l’acheteur (%s). Le destinataire n’est pas prêt à recevoir. Demandez-lui de vérifier son inscription à l’annuaire.
+FacturelectRoutingError=Annuaire indisponible ou réponse invalide : l’adresse acheteur %s n’a pas pu être vérifiée. L’envoi reste autorisé ; vérifiez l’adresse auprès du destinataire.
+FacturelectRoutingAssociate=Vérifier et associer ce tiers
+FacturelectRoutingMode=Contrôle de l’adresse acheteur
+FacturelectRoutingModeBlock=Bloquer les adresses non livrables (par défaut)
+FacturelectRoutingModeWarn=Avertir sans bloquer
+FacturelectRoutingModeOff=Désactiver le contrôle
+FacturelectRoutingModeHelp=Production SuperPDP uniquement, hors B2C. En cas d’erreur de l’annuaire, l’envoi reste autorisé avec avertissement.
+FacturelectRoutingChoose=Demandez au destinataire quelle adresse correspond au type de flux de cette facture. Les adresses inactives ne sont pas sélectionnables.
+FacturelectRoutingActive=Actif
+FacturelectRoutingInactiveLabel=Inactif ou inconnu
+FacturelectRoutingTechnical=Retour technique
+
+# Per-invoice buyer address
+FacturelectBuyerAddress=Adresse PEPPOL pour cette facture
+FacturelectBuyerAddressHelp=Choisissez l’adresse active indiquée par le destinataire pour ce type de flux. Ce choix est prioritaire sur l’adresse du tiers et ne modifie ni le tiers ni le SIREN légal. Il est effacé lors du clonage.
+FacturelectBuyerAddressDefault=Utiliser l’adresse du tiers (sinon le SIREN nu)
+FacturelectBuyerAddressSource=Adresse choisie pour cette facture
+FacturelectBuyerAddressLoading=Chargement des adresses actives…
+FacturelectBuyerAddressNone=Aucune adresse active disponible. Demandez au destinataire son adresse de facturation.
+FacturelectBuyerAddressInvalid=Cette adresse n’est pas une adresse active de l’acheteur dans l’annuaire. Rechargez les adresses et vérifiez le suffixe auprès du destinataire.
+FacturelectBuyerAddressDirectoryError=Annuaire indisponible : impossible de proposer ou d’enregistrer une nouvelle adresse. Le choix existant est conservé ; vous pouvez reprendre l’adresse du tiers.
+FacturelectBuyerAddressSaveError=L’adresse de cette facture n’a pas pu être enregistrée.
+FacturelectBuyerAddressSaved=Choix de l’adresse pour cette facture enregistré. Aucune facture n’a été transmise.
+
+FacturelectDiagnosticCopy=Copier
+FacturelectDiagnosticCopied=Diagnostic copié dans le presse-papier.
+FacturelectDiagnosticCopyError=Copie impossible. Sélectionnez et copiez le diagnostic manuellement.
+FacturelectBuyerAddressSandboxHelp=En sandbox, les adresses de l’annuaire français ne sont pas des destinations de test PEPPOL. Utilisez un tiers fictif SuperPDP : le SIREN 000000001 est routé vers 0225:315143296_7181. Ne choisissez pas un suffixe de production pour ce test.
+
+FacturelectThirdpartyAddress=Adresse PEPPOL du tiers
+FacturelectThirdpartyAddressDefault=Sans adresse associée (repli sur le SIREN)
+FacturelectThirdpartyAddressHelp=Cette adresse sera utilisée par défaut sur les factures. Un choix spécifique sur une facture reste prioritaire. Choisissez le suffixe indiqué par le destinataire.
+FacturelectThirdpartyAddressSaved=Adresse PEPPOL du tiers enregistrée.
+FacturelectBuyerAddressDefaultValue=Adresse du tiers : %s
+FacturelectBuyerAddressSandboxTitle=Destinataires de test sandbox
+
+FacturelectSendInvalidStatus=Seules les factures validées ou payées peuvent être transmises.
+FacturelectResendInvoice=Renvoyer au format électronique
+FacturelectRetryInvoice=Relancer la transmission
+FacturelectRoutingUnverified=L’adresse acheteur n’a pas de vérification récente dans l’annuaire. Ouvrez le diagnostic de transmission pour la vérifier ; un contrôle en direct sera aussi effectué avant l’envoi.
+FacturelectResetError=Impossible de réinitialiser le champ de transmission %s sur la nouvelle facture : %s. La création de la facture a été annulée.
+FacturelectOpenDiagnostic=Ouvrir le diagnostic de transmission

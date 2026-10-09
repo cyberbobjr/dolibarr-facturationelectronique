@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,9 @@
  *	\brief      Hooks class for Facturation Electronique custom workflows
  */
 
-require_once DOL_DOCUMENT_ROOT.'/core/class/commonhookactions.class.php';
+if (!class_exists('CommonHookActions')) {
+	require_once DOL_DOCUMENT_ROOT.'/core/class/commonhookactions.class.php';
+}
 if (!class_exists('FacturelectClient')) {
 	require_once dirname(__FILE__) . '/facturelectclient.class.php';
 }
@@ -30,6 +32,12 @@ if (!class_exists('VatexMapper')) {
 }
 if (!class_exists('FacturelectB2cResolver')) {
 	require_once dirname(__FILE__) . '/b2cresolver.class.php';
+}
+if (!class_exists('FacturelectRouting')) {
+	require_once __DIR__.'/facturelectrouting.class.php';
+}
+if (!class_exists('FacturelectTransmissionFields')) {
+	require_once dirname(__FILE__) . '/facturelecttransmissionfields.class.php';
 }
 
 /**
@@ -53,6 +61,29 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 *             Dolibarr V24's button-collapsing, so they are output in the page footer instead.
 	 */
 	private $deferredFooterHtml = '';
+
+	/** @var FacturelectRouting Request-scoped routing checker */
+	private $routingChecker;
+
+	/**
+	 * Check the exact payload address and retain the compared identifiers in the send log.
+	 *
+	 * @param object $invoice Invoice with loaded buyer
+	 * @param object $client Provider client
+	 * @return array Routing verdict
+	 */
+	public function checkBuyerRouting($invoice, $client)
+	{
+		require_once __DIR__.'/facturelectrouting.class.php';
+		if ($this->routingChecker === null) {
+			$this->routingChecker = new FacturelectRouting();
+		}
+		$verdict = $this->routingChecker->check($invoice->thirdparty, $client, $invoice);
+		if ($verdict['status'] !== 'skipped') {
+			$this->writeLog($invoice->ref, $verdict['status'] === 'ok' ? 'INFO' : 'WARNING', 'Buyer routing: '.json_encode($verdict));
+		}
+		return $verdict;
+	}
 
 	/**
 	 * Constructor
@@ -107,72 +138,77 @@ class ActionsFacturationelectronique extends CommonHookActions
 	{
 		global $conf, $user, $langs;
 
+		if ($parameters['currentcontext'] === 'thirdpartycard' && $action === 'save_thirdparty_address') {
+			$langs->load('facturation_electronique@facturationelectronique');
+			$tokens = array_filter(array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''));
+			$sent_token = GETPOST('token', 'alpha');
+			if (!empty($user->socid) || !($user->admin || !empty($user->rights->societe->creer))
+				|| getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp') !== 'superpdp'
+				|| !getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1) || empty($object->id)
+				|| ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || empty($sent_token) || !in_array($sent_token, $tokens, true)) {
+				accessforbidden();
+			}
+			$object->fetch_optionals();
+			$saved = FacturelectRouting::saveThirdpartyAddress($object, GETPOST('buyer_address', 'alphanohtml'), new FacturelectClient($this->db));
+			setEventMessages($langs->trans($saved['message']), null, $saved['success'] ? 'mesgs' : 'errors');
+			$action = 'view';
+			return 0;
+		}
+
 		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
 			return 0;
 		}
 
+		if ($parameters['currentcontext'] === 'invoicecard' && $action === 'save_buyer_address') {
+			$langs->load('facturation_electronique@facturationelectronique');
+			$object->fetch_optionals();
+			$object->fetch_thirdparty();
+			$object->thirdparty->fetch_optionals();
+			$tokens = array_filter(array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''));
+			$sent_token = GETPOST('token', 'alpha');
+			if (!empty($user->socid) || !($user->admin || !empty($user->rights->facture->creer))
+				|| getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp') !== 'superpdp'
+				|| !getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1) || empty($object->id)
+				|| !empty($object->array_options['options_facturelect_invoice_id'])
+				|| FacturelectB2cResolver::isB2c($object->thirdparty->typent_code ?? '', $object->thirdparty->array_options['options_facturelect_b2c'] ?? null)
+				|| ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || empty($sent_token) || !in_array($sent_token, $tokens, true)) {
+				accessforbidden();
+			}
+			$saved = FacturelectRouting::saveBuyerAddress($object, GETPOST('buyer_address', 'alphanohtml'), new FacturelectClient($this->db));
+			setEventMessages($langs->trans($saved['message']), null, $saved['success'] ? 'mesgs' : 'errors');
+			$action = 'view';
+			return 0;
+		}
+
 		if ($parameters['currentcontext'] === 'invoicecard' && $action === 'send_facturelect') {
+			require_once __DIR__.'/facturelectdiagnostic.class.php';
+			if (!FacturelectDiagnostic::canTransmit($user, GETPOST('token', 'alpha'), array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''), $_SERVER['REQUEST_METHOD'] ?? '')) {
+				accessforbidden();
+			}
 			$langs->load('facturation_electronique@facturationelectronique');
 
 			$this->writeLog($object->ref, 'INFO', 'Debut de la transmission electronique (action: send_facturelect).');
 
-			// 1. Compile standard en_invoice JSON
-			$en_invoice = $this->buildEnInvoiceJson($object);
-			if (!$en_invoice) {
-				$this->writeLog($object->ref, 'ERROR', 'Echec de la compilation du payload JSON : ' . $this->error);
-				setEventMessages($this->error, null, 'errors');
-				$action = 'view';
-				return 0;
-			}
-
-			// LOG PAYLOAD FOR DEBUGGING
-			$log_dir = DOL_DATA_ROOT . '/facturation_electronique';
-			require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
-			dol_mkdir($log_dir);
-			file_put_contents($log_dir . '/last_payload.json', json_encode($en_invoice, JSON_PRETTY_PRINT));
-			$this->writeLog($object->ref, 'INFO', 'Payload JSON genere avec succes et enregistre dans last_payload.json.');
-
-			// 2. Convert and send
+			require_once __DIR__.'/facturelectdiagnostic.class.php';
 			$client = new FacturelectClient($this->db);
-
-			// Call convert endpoint with the existing Dolibarr PDF to preserve layout
-			$pdf_dir = $conf->facture->dir_output . '/' . dol_sanitizeFileName($object->ref);
-			$pdf_file = $pdf_dir . '/' . dol_sanitizeFileName($object->ref) . '.pdf';
-			if (!file_exists($pdf_file)) {
-				$model = !empty($object->model_pdf) ? $object->model_pdf : 'crabe';
-				$object->generateDocument($model, $langs);
-			}
-
-			$pdf_content = $client->convertInvoiceToFacturX($en_invoice, file_exists($pdf_file) ? $pdf_file : '');
+			$attempt = FacturelectDiagnostic::send($object, $this, $client, $langs);
+			$pdf_content = $attempt['pdf'];
+			$send_res = $attempt['response'];
+			$log_dir = DOL_DATA_ROOT . '/facturation_electronique';
 			if ($pdf_content === false) {
-				// LOG THE EXACT API RESPONSE ERROR FOR DEBUGGING
-				file_put_contents($log_dir . '/last_error.txt', "Convert API Error: " . $client->error);
-				$this->writeLog($object->ref, 'ERROR', 'Echec de la conversion en Factur-X : ' . $client->error);
-				setEventMessages($langs->trans('FacturelectSendError', $client->error), null, 'errors');
+				$this->writeLog($object->ref, 'ERROR', $attempt['error']);
+				setEventMessages($langs->trans('FacturelectSendError', $attempt['error']), null, 'errors');
 				$action = 'view';
 				return 0;
 			}
 
-			$this->writeLog($object->ref, 'SUCCESS', 'Conversion en Factur-X reussie.');
-
-			// Upload/Send endpoint
-			$send_res = $client->sendFacturXInvoice($pdf_content, $object->ref);
-			$pdp_id = '';
 			if ($send_res === false) {
-				if (preg_match('/d[eé]j[aà] existante\s*\(id\s*(\d+)\)/ui', $client->error, $matches)) {
-					$pdp_id = $matches[1];
-					$this->writeLog($object->ref, 'INFO', 'La facture existe deja sur le PDP. Recuperation de l ID existant : ' . $pdp_id);
-				} else {
-					// LOG THE EXACT API RESPONSE ERROR FOR DEBUGGING
-					file_put_contents($log_dir . '/last_error.txt', "Upload API Error: " . $client->error);
-					$this->writeLog($object->ref, 'ERROR', 'Echec de la transmission via ' . $client->getProviderName() . ' : ' . $client->error);
-					setEventMessages($langs->trans('FacturelectSendError', $client->error), null, 'errors');
-					$action = 'view';
-					return 0;
-				}
-			} else {
-				$pdp_id = $send_res['id'];
+				$this->writeLog($object->ref, 'ERROR', 'Transmission failed: '.$attempt['error']);
+				setEventMessages($langs->trans('FacturelectSendError', $attempt['error']), null, 'errors');
+				$action = 'view';
+				return 0;
 			}
+			$pdp_id = $send_res['id'];
 
 			// 1. Update Extrafields safely according to AGENTS.md Rule 9 (triggers might regenerate standard PDF here, so we do it first)
 			$object->array_options['options_facturelect_invoice_id'] = $pdp_id;
@@ -261,7 +297,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 */
 	public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager)
 	{
-		global $langs, $conf;
+		global $langs, $conf, $user;
 
 		$langs->load('facturation_electronique@facturationelectronique');
 
@@ -318,6 +354,17 @@ class ActionsFacturationelectronique extends CommonHookActions
 			// Captured with output buffering and deferred to printCommonFooter: emitting a
 			// <script> inside the action-buttons bar breaks Dolibarr V24's button layout
 			// (see AGENTS.md rule 51).
+			if ($parameters['currentcontext'] === 'thirdpartycard' && $feat_siren && empty($user->socid)
+				&& getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp') === 'superpdp') {
+				$object->fetch_optionals();
+				$fe_address_is_thirdparty = true;
+				$fe_diagnostic_current = array('routing' => FacturelectDiagnostic::routing($object), 'mode' => getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE'));
+				$fe_can_edit_buyer_address = $user->admin || !empty($user->rights->societe->creer);
+				ob_start();
+				require __DIR__.'/../tpl/buyer_address.tpl.php';
+				$this->deferredFooterHtml .= ob_get_clean();
+			}
+
 			$fe_modal_socid = (int) $thirdparty_id;
 			$fe_modal_prefill_name = $thirdparty_name;
 			$fe_modal_prefill_zip = $thirdparty_zip;
@@ -369,13 +416,6 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$seller_siren_invalid = empty($seller_siren) || (strlen($seller_siren) !== 9 || !ctype_digit($seller_siren));
 			$buyer_siren_invalid = FacturelectB2cResolver::isBuyerSirenInvalid($buyer_siren, $is_b2c);
 
-			// Check buyer PEPPOL routing association (facturelect_id extrafield)
-			// In production: empty facturelect_id means routing falls back to raw SIREN — buyer may not be registered in PPF
-			// In sandbox: SIREN always gets the sandbox prefix automatically, so no risk
-			$buyer_facturelect_id = !empty($object->thirdparty->array_options['options_facturelect_id']) ? $object->thirdparty->array_options['options_facturelect_id'] : '';
-			$fe_mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE');
-			// A B2C customer is never routed by SIREN, so the "not associated to the directory" warning does not apply.
-			$buyer_not_associated = empty($buyer_facturelect_id) && $fe_mode === 'production' && !$is_b2c;
 
 			// Neutral note shown instead of a SIREN error when the customer is a private individual (B2C).
 			$b2c_note_html = '';
@@ -387,18 +427,24 @@ class ActionsFacturationelectronique extends CommonHookActions
 				$b2c_note_html .= '</div></div>';
 			}
 
-			// Build warning banner (non-blocking) for missing PEPPOL association in production
+			// Reuse the send verdict; the checker caches only the current request's response.
 			$warning_html = '';
-			if ($buyer_not_associated && !$buyer_siren_invalid) {
-				$warning_html .= '<div class="fe-alert fe-alert-warning fe-invoice-config-warning" style="margin-bottom:10px; display:flex; align-items:flex-start; gap:10px; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:12px;">';
-				$warning_html .= '<span class="fa fa-exclamation-circle" style="color:#f59e0b; font-size:20px; margin-top:2px; flex-shrink:0;"></span>';
-				$warning_html .= '<div><strong style="color:#92400e;">Tiers non associé à l\'annuaire PDP</strong><br/>';
-				$warning_html .= 'Ce tiers n\'a pas été associé via l\'annuaire. La facture sera routée par SIREN (<code style="background:#fef3c7; padding:2px 6px; border-radius:3px;">0225:'.dol_escape_htmltag($buyer_siren).'</code>).<br/>';
-				$warning_html .= 'Si ce tiers n\'est pas inscrit au <strong>Portail Public de Facturation (PPF)</strong>, la facture sera transmise mais jamais délivrée au destinataire.<br/>';
-				$warning_html .= '<a href="#" onclick="feOpenModal('.$thirdparty_id.'); return false;" class="butAction" style="margin-top:8px; display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:4px 10px; border:1px solid #d97706!important; border-radius:6px; color:#ffffff!important; background:#f59e0b!important; background-image:none!important; text-decoration:none!important;">';
-				$warning_html .= '<span class="fa fa-search"></span> Vérifier et associer ce tiers';
-				$warning_html .= '</a></div></div>';
+			if (empty($pdp_id) && empty($user->socid) && !$is_b2c
+				&& getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE') === 'production'
+				&& getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp') === 'superpdp'
+				&& getDolGlobalString('FACTURATION_ELECTRONIQUE_ROUTING_CHECK_MODE', 'block') !== 'off') {
+				$routing_verdict = FacturelectDiagnostic::cachedRoutingVerdict($this->db, $object, new FacturelectClient($this->db));
+				if ($routing_verdict === null || !in_array($routing_verdict['status'], array('ok', 'skipped'), true)) {
+					$warning_html = '<div class="fe-alert fe-alert-warning fe-invoice-config-warning">';
+					$warning_html .= dol_escape_htmltag($routing_verdict === null ? $langs->trans('FacturelectRoutingUnverified') : FacturelectRouting::message($routing_verdict, $langs));
+					$warning_html .= '<br/><a href="'.dol_buildpath('/facturationelectronique/invoice_facturelect_tab.php', 1).'?id='.((int) $object->id).'&type=customer" class="butAction">'.$langs->trans('FacturelectOpenDiagnostic').'</a>';
+					if ($feat_siren) {
+						$warning_html .= ' <a href="#" onclick="feOpenModal('.$thirdparty_id.'); return false;" class="butAction">'.$langs->trans('FacturelectRoutingAssociate').'</a>';
+					}
+					$warning_html .= '</div>';
+				}
 			}
+
 
 			// Build configuration error banners
 			$config_error_html = '';
@@ -471,9 +517,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					}
 					$banner_html .= '</ul>';
 					if (!empty($buyer_siren)) {
-						$banner_html .= '<a class="butAction fe-btn-secondary" style="margin-top: 10px; display: inline-flex; align-items: center;" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						$banner_html .= '<span class="fa fa-paper-plane paddingrightonly"></span> Renvoyer au format électronique';
-						$banner_html .= '</a>';
+						$banner_html .= FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectResendInvoice'), 'butAction fe-btn-secondary');
 					}
 					$banner_html .= '</div></div>';
 				} elseif ($pdp_status === 'queued') {
@@ -490,9 +534,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					if (empty($buyer_siren) && !$is_b2c) {
 						$banner_html .= '<br/><span class="fa fa-warning"></span> <strong>Avertissement :</strong> Le SIREN (Identifiant Professionnel 1) de ce client n\'est pas configuré. C\'est nécessaire pour l\'envoi B2B.<br/>';
 					}
-					$banner_html .= '<a class="butAction fe-btn-primary" style="margin-top: 10px; display: inline-flex; align-items: center;" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-					$banner_html .= '<span class="fa fa-paper-plane paddingrightonly"></span> Relancer la transmission';
-					$banner_html .= '</a>';
+					$banner_html .= FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectRetryInvoice'), 'butAction fe-btn-primary');
 					$banner_html .= '</div></div>';
 				} else { // not_sent
 					$banner_html = $b2c_note_html . $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
@@ -505,9 +547,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 						$banner_html .= '<span class="fa fa-search paddingrightonly"></span> Rechercher et associer le tiers';
 						$banner_html .= '</a>';
 					} else {
-						$banner_html .= '<a class="butAction fe-btn-primary" style="margin-top: 10px; display: inline-flex; align-items: center;" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						$banner_html .= '<span class="fa fa-paper-plane paddingrightonly"></span> ' . $langs->trans('FacturelectTabTransmitNow');
-						$banner_html .= '</a>';
+						$banner_html .= FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectTabTransmitNow'), 'butAction fe-btn-primary');
 					}
 					$banner_html .= '</div></div>';
 				}
@@ -537,19 +577,25 @@ class ActionsFacturationelectronique extends CommonHookActions
 			</script>
 			<?php
 			$this->deferredFooterHtml .= ob_get_clean();
+			if (empty($user->socid) && $feat_siren && getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp') === 'superpdp' && !$is_b2c) {
+				$fe_address_is_thirdparty = false;
+				$fe_diagnostic_current = FacturelectDiagnostic::context($object, new FacturelectClient($this->db));
+				$fe_can_edit_buyer_address = empty($pdp_id) && ($user->admin || !empty($user->rights->facture->creer));
+				ob_start();
+				require __DIR__.'/../tpl/buyer_address.tpl.php';
+				$this->deferredFooterHtml .= ob_get_clean();
+			}
+
+			$this->deferredFooterHtml .= FacturelectDiagnostic::sendForm($object);
 
 			// Standard Actions Bar Button (only when validated/paid)
 			if ($object->statut == 1 || $object->statut == 2) {
 				$can_send = !$seller_siren_invalid && !$buyer_siren_invalid;
 				if ($can_send) {
 					if ($pdp_status === 'transmitted') {
-						echo '<a class="butAction fe-btn-secondary" id="fe-resend-btn" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						echo '<span class="fa fa-paper-plane paddingrightonly"></span> Renvoyer au format électronique';
-						echo '</a>';
+						echo FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectResendInvoice'), 'butAction fe-btn-secondary', 'fe-resend-btn');
 					} else {
-						echo '<a class="butAction fe-btn-primary" id="fe-send-btn" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						echo '<span class="fa fa-paper-plane paddingrightonly"></span> ' . $langs->trans('FacturelectSendInvoice');
-						echo '</a>';
+						echo FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectSendInvoice'), 'butAction fe-btn-primary', 'fe-send-btn');
 					}
 				} elseif ($seller_siren_invalid) {
 					echo '<a class="butAction" id="fe-config-btn" href="'.DOL_URL_ROOT.'/admin/company.php" target="_blank" style="border:1px solid #dc2626!important; color:#ffffff!important; background:#ef4444!important; background-image:none!important;" title="Le SIREN de votre entreprise est invalide ou manquant. Cliquer pour corriger.">';
@@ -792,22 +838,12 @@ class ActionsFacturationelectronique extends CommonHookActions
 			$vat_breakdowns[] = $breakdown;
 		}
 
-		// Retrieve client routing details from third party extrafields
-		$buyer_scheme = !empty($object->thirdparty->array_options['options_facturelect_scheme']) ? $object->thirdparty->array_options['options_facturelect_scheme'] : '0225';
-		$buyer_identifier = !empty($object->thirdparty->array_options['options_facturelect_id']) ? $object->thirdparty->array_options['options_facturelect_id'] : $clean_buyer_siren;
-
-		// Automatically prefix with SuperPDP sandbox routing identifier if in sandbox/test mode and identifier is a raw SIREN/SIRET
+		require_once __DIR__.'/facturelectdiagnostic.class.php';
+		$routing = FacturelectDiagnostic::routing($object->thirdparty, $object);
+		$buyer_scheme = $routing['scheme'];
+		$buyer_identifier = $routing['identifier'];
 		$mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE');
 		$active_provider = getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER');
-		if ($mode !== 'production' && $active_provider === 'superpdp') {
-			if ($buyer_identifier === '000000001' || preg_match('/_000000001$/', $buyer_identifier)) {
-				$buyer_identifier = '315143296_7181';
-			} elseif (preg_match('/^[0-9]{9}$/', $buyer_identifier)) {
-				$buyer_identifier = '315143296_7182_' . $buyer_identifier;
-			} elseif (preg_match('/^[0-9]{14}$/', $buyer_identifier)) {
-				$buyer_identifier = '315143296_7182_' . $buyer_identifier;
-			}
-		}
 
 		// Extract a clean 9-digit SIREN for official business identifier fields
 		$legal_buyer_siren = $clean_buyer_siren;
@@ -1507,17 +1543,21 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 */
 	public function createFrom($parameters, &$object, &$action, $hookmanager)
 	{
-		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
-			return 0;
-		}
+		// Safety net after the BILL_CREATE trigger: the next situation invoice form of some
+		// Dolibarr versions re-applies the posted extrafields once the invoice is created (#34).
+		// Not behind the transmission feature flag, like the trigger.
 		if (is_object($object) && $object->element === 'facture') {
-			$object->array_options['options_facturelect_invoice_id'] = '';
-			$object->array_options['options_facturelect_status'] = 'not_sent';
-			$object->array_options['options_facturelect_send_date'] = '';
-
-			$object->updateExtraField('facturelect_invoice_id');
-			$object->updateExtraField('facturelect_status');
-			$object->updateExtraField('facturelect_send_date');
+			$reset_fields = FacturelectTransmissionFields::reset($object);
+			// A copied invoice may concern another flow: restore the buyer's default address.
+			if (!empty($object->array_options['options_facturelect_buyer_address'])) {
+				$object->array_options['options_facturelect_buyer_address'] = '';
+				$reset_fields[] = 'facturelect_buyer_address';
+			}
+			foreach ($reset_fields as $key) {
+				if ($object->updateExtraField($key) < 0) {
+					dol_syslog("FacturationElectronique createFrom error: Failed to reset ".$key." on invoice ".$object->id.". ".$object->error, LOG_ERR);
+				}
+			}
 		}
 		return 0;
 	}

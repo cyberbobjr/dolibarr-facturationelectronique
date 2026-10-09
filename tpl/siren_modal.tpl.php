@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -155,7 +155,7 @@ if (!window.feSirenModalLoaded) {
 		   into an onclick attribute. */
 		document.getElementById('fe-modal-content').addEventListener('click', function (event) {
 			const trigger = event.target.closest('[data-fe-action]');
-			if (!trigger) {
+			if (!trigger || trigger.disabled) {
 				return;
 			}
 			const index = parseInt(trigger.getAttribute('data-fe-index'), 10);
@@ -274,20 +274,27 @@ if (!window.feSirenModalLoaded) {
 			.then(response => response.json())
 			.then(data => {
 				loader.classList.add('fe-hidden');
-				if (data.success && data.entries && data.entries.length > 0) {
+				if (!data.success) {
+					content.innerHTML = '<div class="fe-no-results fe-text-danger">Échec du contrôle de l’annuaire : ' + feEscapeHtml(data.error || 'Réponse inconnue') + '</div>';
+					return;
+				}
+				if (data.entries && data.entries.length > 0) {
 					let html = '<div class="fe-entries-list">';
 					html += '<h4>Établissements / Adresses de facturation active</h4>';
+					html += '<p><?php echo dol_escape_js($langs->trans('FacturelectRoutingChoose')); ?></p>';
 					html += '<table class="fe-results-table"><thead><tr><th>Établissement / ID PEPPOL</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
 					data.entries.forEach(entry => {
 						// Identifiers are decomposed server-side (FacturelectPeppolId): the modal
 						// must never parse a routing address itself.
 						const establishmentLabel = entry.label || entry.identifier;
 
-						const statusClass = entry.is_active ? 'success' : 'danger';
-						const statusText = entry.is_active ? 'Actif' : 'Inactif';
+						const technical = /_replyto$/i.test(entry.parsed ? entry.parsed.identifier : entry.identifier);
+						const selectable = entry.is_active === true && !technical;
+						const statusClass = selectable ? 'success' : 'danger';
+						const statusText = technical ? '<?php echo dol_escape_js($langs->trans('FacturelectRoutingTechnical')); ?>' : (entry.is_active === true ? '<?php echo dol_escape_js($langs->trans('FacturelectRoutingActive')); ?>' : '<?php echo dol_escape_js($langs->trans('FacturelectRoutingInactiveLabel')); ?>');
 
 						html += `
-							<tr>
+							<tr ${selectable ? '' : 'style="opacity:0.55"'}>
 								<td>
 									<strong>${feEscapeHtml(establishmentLabel)}</strong><br/>
 									<span class="fe-peppol-id">${feEscapeHtml(entry.identifier)}</span>
@@ -296,7 +303,7 @@ if (!window.feSirenModalLoaded) {
 									<span class="fe-status-pill ${statusClass}">${statusText}</span>
 								</td>
 								<td>
-									<button type="button" class="fe-btn fe-btn-primary fe-btn-sm" data-fe-action="associate" data-fe-index="${index}" data-fe-identifier="${feEscapeHtml(entry.identifier)}" data-fe-scheme="${feEscapeHtml(entry.scheme)}">
+									<button type="button" class="fe-btn fe-btn-primary fe-btn-sm" data-fe-action="associate" data-fe-index="${index}" data-fe-identifier="${feEscapeHtml(entry.identifier)}" data-fe-scheme="${feEscapeHtml(entry.parsed ? entry.parsed.scheme : entry.scheme)}" ${selectable ? '' : 'disabled'}>
 										Associer
 									</button>
 								</td>
@@ -304,23 +311,10 @@ if (!window.feSirenModalLoaded) {
 						`;
 					});
 					html += '</tbody></table>';
-					html += `
-						<div style="margin-top: 15px; text-align: right;">
-							<button type="button" class="fe-btn fe-btn-secondary" data-fe-action="associate" data-fe-index="${index}" data-fe-identifier="${feEscapeHtml(company.number)}" data-fe-scheme="0225">
-								Associer le SIREN uniquement (sans établissement spécifique)
-							</button>
-						</div>
-					`;
+
 					content.innerHTML = html;
 				} else {
-					let html = '<div class="fe-no-results">Aucun établissement enregistré dans l\'annuaire PEPPOL pour cette entreprise.</div>';
-					html += `
-						<div style="margin-top: 15px; text-align: center;">
-							<button type="button" class="fe-btn fe-btn-primary" data-fe-action="associate" data-fe-index="${index}" data-fe-identifier="${feEscapeHtml(company.number)}" data-fe-scheme="0225">
-								Associer quand même le SIREN uniquement
-							</button>
-						</div>
-					`;
+					let html = '<div class="fe-no-results">Aucune adresse retournée par l’annuaire français pour cette entreprise. Demandez au destinataire son adresse de facturation active.</div>';
 					content.innerHTML = html;
 				}
 			})

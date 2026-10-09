@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <contact@superpdp.tech>
+/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -99,7 +99,12 @@ if ($action === 'update_features') {
 		$siren_source = FacturelectDirectoryFactory::DEFAULT_SOURCE;
 	}
 	$r4 = dolibarr_set_const($db, FacturelectDirectoryFactory::SETTING_NAME, $siren_source, 'chaine', 0, 'Default directory used for SIREN lookup', $conf->entity);
-	if ($r1 >= 0 && $r2 >= 0 && $r3 >= 0 && $r4 >= 0) {
+	$routing_mode = GETPOST('routing_check_mode', 'alpha');
+	if (!in_array($routing_mode, array('block', 'warn', 'off'), true)) {
+		$routing_mode = 'block';
+	}
+	$r5 = dolibarr_set_const($db, 'FACTURATION_ELECTRONIQUE_ROUTING_CHECK_MODE', $routing_mode, 'chaine', 0, 'Buyer routing check mode', $conf->entity);
+	if ($r1 >= 0 && $r2 >= 0 && $r3 >= 0 && $r4 >= 0 && $r5 >= 0) {
 		setEventMessages("Fonctionnalités mises à jour.", null, 'mesgs');
 	} else {
 		setEventMessages($langs->trans("ErrorFailedToSave"), null, 'errors');
@@ -306,6 +311,13 @@ print '  <p style="color:#64748b; font-size:13px; margin-bottom:16px;">Activez o
 print '  <form action="' . $_SERVER['PHP_SELF'] . '" method="post">';
 print '    <input type="hidden" name="token" value="' . newToken() . '">';
 print '    <input type="hidden" name="action" value="update_features">';
+print '<label for="routing_check_mode">'.$langs->trans('FacturelectRoutingMode').'</label> ';
+print '<select id="routing_check_mode" name="routing_check_mode">';
+foreach (array('block', 'warn', 'off') as $routing_option) {
+	print '<option value="'.$routing_option.'"'.(getDolGlobalString('FACTURATION_ELECTRONIQUE_ROUTING_CHECK_MODE', 'block') === $routing_option ? ' selected' : '').'>'.$langs->trans('FacturelectRoutingMode'.ucfirst($routing_option)).'</option>';
+}
+print '</select><p>'.$langs->trans('FacturelectRoutingModeHelp').'</p>';
+
 print '    <div style="display:flex; flex-direction:column; gap:14px;">';
 
 // Feature 1 — Transmission

@@ -23,6 +23,8 @@ Ce module est versionné indépendamment du cœur de Dolibarr. Assurez-vous de t
 
 La branche `main` est **protégée** : aucun push direct n'y est autorisé, tout passe par une Pull Request. Comme la CI ne peut donc pas écrire sur `main`, le calcul de version se fait **dans la PR**, et la release au **merge** est en lecture seule.
 
+Pour documenter des changements non encore commités, mettez à jour `build/unreleased_notes.md` **en anglais**, puis exécutez `php build/generate_changelog.php --unreleased`. Ce mode actualise la section « Unreleased » sans modifier la version. La génération normale ci-dessous intègre ensuite ces notes dans la nouvelle version, conserve les références des commits et vide le brouillon consommé.
+
 **a. Bumper la version dans votre PR** (après avoir committé vos `feat`/`fix`/… sur votre branche) :
 
 ```bash
