@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.11.0-beta.1] - 2026-10-09
+
+### ✨ Added
+
+- Cache valid SuperPDP PEPPOL directory responses across requests for company lookup and invoice routing checks. Configure the duration in module settings (minutes, default 24 hours, 0 disables caching, maximum one year).
+- Isolate cached responses by SIREN, Dolibarr entity, environment and credentials. Cache empty results, retry errors and malformed responses, and fall back to the provider when storage is unavailable. Apply duration changes to existing records.
+
 ## [1.10.2] - 2026-10-09
 
 ### 🐛 Fixed
