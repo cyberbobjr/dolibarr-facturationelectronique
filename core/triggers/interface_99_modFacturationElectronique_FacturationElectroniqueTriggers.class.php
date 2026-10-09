@@ -64,12 +64,10 @@ class InterfaceFacturationElectroniqueTriggers extends DolibarrTriggers
 		if (empty($conf->facturationelectronique->enabled)) {
 			return 0;
 		}
-		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
-			return 0;
-		}
 
 		// 0. Customer Invoice Created: a new invoice has never been transmitted, even when Dolibarr
-		// copied the extrafields of its source invoice (next situation invoice, clone...) (#34)
+		// copied the extrafields of its source invoice (next situation invoice, clone...) (#34).
+		// Done even when transmission is disabled, otherwise the stale PDP data reappears once enabled.
 		if ($action === 'BILL_CREATE') {
 			if (is_object($object) && $object->element === 'facture') {
 				foreach (FacturelectTransmissionFields::reset($object) as $key) {
@@ -78,6 +76,10 @@ class InterfaceFacturationElectroniqueTriggers extends DolibarrTriggers
 					}
 				}
 			}
+			return 0;
+		}
+
+		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
 			return 0;
 		}
 

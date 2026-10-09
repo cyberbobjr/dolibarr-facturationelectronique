@@ -1510,14 +1510,14 @@ class ActionsFacturationelectronique extends CommonHookActions
 	 */
 	public function createFrom($parameters, &$object, &$action, $hookmanager)
 	{
-		if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
-			return 0;
-		}
 		// Safety net after the BILL_CREATE trigger: the next situation invoice form of some
-		// Dolibarr versions re-applies the posted extrafields once the invoice is created (#34)
+		// Dolibarr versions re-applies the posted extrafields once the invoice is created (#34).
+		// Not behind the transmission feature flag, like the trigger.
 		if (is_object($object) && $object->element === 'facture') {
 			foreach (FacturelectTransmissionFields::reset($object) as $key) {
-				$object->updateExtraField($key);
+				if ($object->updateExtraField($key) < 0) {
+					dol_syslog("FacturationElectronique createFrom error: Failed to reset ".$key." on invoice ".$object->id.". ".$object->error, LOG_ERR);
+				}
 			}
 		}
 		return 0;
