@@ -9,6 +9,7 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 ## [1.10.0-beta.2] - 2026-10-09
 
 ### 🐛 Corrections de Bugs
+- fix(invoice): reset transmission fields even when e-invoicing is disabled (be2d118) par Claude
 - fix(invoice): reset FE transmission fields on new situation invoices (#34) (184b628) par Claude
 
 ## [1.10.0-beta.1] - 2026-08-04
