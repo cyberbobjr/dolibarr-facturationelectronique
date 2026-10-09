@@ -10,6 +10,125 @@
 	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
 }
 
+/* Keep invoice lists within Dolibarr's table-cell content area. */
+.fe-invoice-list {
+	container-type: inline-size;
+}
+.fe-invoice-table {
+	width: 100%;
+	table-layout: fixed;
+}
+.fe-invoice-table th,
+.fe-invoice-table td {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.fe-invoice-list table.fe-invoice-table th.wrapcolumntitle.liste_titre {
+	white-space: normal;
+}
+.fe-invoice-table input.flat,
+.fe-invoice-table select,
+.fe-invoice-table .select2-container {
+	width: 100% !important;
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+.fe-invoice-table .fe-status-pill,
+.fe-invoice-table .fe-btn {
+	max-width: 100%;
+	box-sizing: border-box;
+	flex-wrap: wrap;
+	white-space: normal;
+	overflow-wrap: normal;
+}
+.fe-invoice-table .fe-status-pill a {
+	min-width: 0;
+}
+.fe-inbound-select-label {
+	display: none;
+}
+
+@container (max-width: 900px) {
+	.fe-invoice-table,
+	.fe-invoice-table tbody {
+		display: block;
+	}
+	.fe-invoice-table colgroup {
+		display: none;
+	}
+	.fe-invoice-table .fe-inbound-head {
+		display: block;
+		height: auto !important;
+	}
+	.fe-invoice-table .fe-inbound-head th:not(:first-child) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+	.fe-invoice-table .fe-inbound-head th:first-child {
+		display: block;
+		width: auto !important;
+		text-align: left;
+	}
+	.fe-invoice-table .fe-inbound-head th:empty {
+		display: none;
+	}
+	.fe-inbound-select-label {
+		display: inline;
+	}
+	.fe-invoice-table .fe-outbound-head {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		height: auto !important;
+	}
+	.fe-invoice-list .fe-outbound-head th {
+		height: auto;
+		min-width: 0;
+	}
+	.fe-outbound-head th,
+	.fe-outbound-head th .nowrap {
+		white-space: normal;
+	}
+	.fe-invoice-table .fe-events-row {
+		display: block;
+	}
+	.fe-invoice-table .liste_titre_filter {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.fe-invoice-table .liste_titre_filter td:empty {
+		display: none;
+	}
+	.fe-invoice-table .oddeven {
+		display: block;
+		margin-top: 12px;
+		border: 1px solid #e2e8f0;
+	}
+	.fe-invoice-list .fe-invoice-table td {
+		display: block;
+		width: auto;
+		height: auto;
+		box-sizing: border-box;
+		text-align: left;
+	}
+	.fe-invoice-table td[data-label] {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		gap: 8px;
+		align-items: center;
+		justify-items: start;
+	}
+	.fe-invoice-table td[data-label]::before {
+		content: attr(data-label);
+		font-weight: normal;
+		color: #475569;
+		overflow-wrap: normal;
+	}
+}
+
 .fe-header {
 	display: flex;
 	align-items: center;
@@ -587,4 +706,85 @@ pre::-webkit-scrollbar-thumb {
 }
 pre::-webkit-scrollbar-track {
 	background-color: #1e293b;
+}
+
+
+/* Invoice diagnostic: native controls, wrapping long provider addresses and errors. */
+.fe-diagnostic {
+	border: 1px solid #cbd5e1;
+	border-radius: 12px;
+	padding: 20px;
+	margin: 20px 0;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	font-family: 'Outfit', 'Inter', sans-serif;
+	font-size: 13px;
+	color: #334155;
+	overflow-wrap: anywhere;
+}
+.fe-diagnostic .fe-card-title {
+	margin: 0 0 15px;
+	font-size: 16px;
+	font-weight: 700;
+	color: #0f172a;
+	border-bottom: 1px solid #e2e8f0;
+	padding-bottom: 8px;
+}
+.fe-diagnostic .fe-card-title .fa { color: #0284c7; font-size: 20px; }
+.fe-diagnostic h3 { font-size: 14px; font-weight: 700; color: #0f172a; }
+.fe-diagnostic dt { color: #475569; }
+.fe-diagnostic-note { color: #64748b; line-height: 1.5; }
+.fe-diagnostic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.fe-diagnostic dl { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr); gap: 8px 16px; }
+.fe-diagnostic dt { font-weight: bold; }
+.fe-diagnostic dd { margin: 0; }
+.fe-diagnostic-note { font-size: 0.9em; }
+.fe-diagnostic-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.fe-diagnostic-actions form { margin: 0; }
+.fe-diagnostic .butAction { margin: 0; }
+.fe-diagnostic-attempt { border-top: 1px solid #cbd5e1; padding: 12px 0; }
+.fe-diagnostic summary { cursor: pointer; font-weight: bold; padding: 6px 0; }
+.fe-diagnostic pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow: auto; }
+.fe-diagnostic button:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 800px) {
+	.fe-diagnostic { padding: 12px; }
+	.fe-diagnostic-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+	.fe-diagnostic dl { grid-template-columns: minmax(0, 1fr); }
+	.fe-diagnostic dd { margin-bottom: 8px; }
+}
+
+.fe-transmission-panels {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 20px;
+	align-items: start;
+}
+.fe-transmission-panels > .fe-card, .fe-transmission-column { min-width: 0; overflow-wrap: anywhere; }
+.fe-transmission-column:only-child { grid-column: 1 / -1; }
+@media (max-width: 800px) {
+	.fe-transmission-panels { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Invoice address editing follows the native compact field controls. */
+.fe-buyer-address-edit {
+	margin-left: auto;
+	padding: 2px 4px;
+	border: 0;
+	background: none;
+	color: #64748b;
+	cursor: pointer;
+}
+
+.fe-buyer-address-dialog {
+	padding: 0;
+	width: calc(100% - 32px);
+	color: inherit;
+}
+
+.fe-buyer-address-dialog:not([open]) {
+	display: none;
+}
+
+.fe-buyer-address-dialog::backdrop {
+	background: rgba(15, 23, 42, 0.45);
 }

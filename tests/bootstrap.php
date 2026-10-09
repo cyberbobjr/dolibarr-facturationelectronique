@@ -159,3 +159,19 @@ if (!class_exists('User')) {
 		}
 	}
 }
+
+
+/** Minimal hook base for testing the payload builder without a Dolibarr installation. */
+if (!class_exists('CommonHookActions')) {
+	class CommonHookActions
+	{
+	}
+}
+
+if (!function_exists('setEventMessages')) {
+	/** @param string $message Event @param mixed $messages Additional events @param string $type Severity @return void */
+	function setEventMessages($message, $messages = null, $type = 'mesgs')
+	{
+		$GLOBALS['routing_test_events'][] = array($type, $message);
+	}
+}

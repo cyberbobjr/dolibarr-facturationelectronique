@@ -82,3 +82,14 @@ Le fichier ZIP généré sera écrit dans le dossier `build/`.
 ## Licence
 
 Ce module est distribué sous licence **GNU General Public License v3** (ou ultérieure) - voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+
+## Diagnostic de transmission
+
+Sur une facture client, ouvrez l’onglet **Facturation Électronique**. Le panneau **Diagnostic de transmission** affiche la configuration actuelle, l’adresse prévue et son origine, la dernière vérification du destinataire et les 20 dernières tentatives enregistrées pour cette facture.
+
+- **Vérifier le destinataire** contrôle la connexion et consulte l’annuaire français sans déposer de facture. Ce contrôle ne garantit pas la disponibilité technique de l’adresse dans PEPPOL.
+- **Choisir une adresse active** utilise la fenêtre d’association existante, si l’utilisateur peut modifier les tiers et si la gestion SIREN est activée. Les adresses inactives et les retours techniques `_replyto` ne sont pas sélectionnables.
+- **Exporter le diagnostic masqué** produit un JSON pour le support sans données de facturation, identifiants du destinataire ou textes libres de l’API. Les administrateurs peuvent consulter les payloads et réponses complets dans les détails dépliables du panneau.
+
+Le panneau est réservé aux utilisateurs internes autorisés à lire la facture. Les nouvelles tentatives effectuées depuis la fiche ou la liste sortante sont conservées dans la table d’audit existante, sans migration ni réactivation du module. Les anciennes erreurs enregistrées uniquement dans les fichiers communs ne sont pas rétroactivement attribuées aux factures. Un dépôt accepté doit toujours être suivi via les événements de la plateforme pour confirmer la livraison.

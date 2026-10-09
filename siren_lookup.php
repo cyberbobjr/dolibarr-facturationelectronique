@@ -40,8 +40,9 @@ if (!class_exists('FacturelectPeppolId')) {
 	require_once './class/facturelectpeppolid.class.php';
 }
 
-// Check permissions (allow admin or users with read access to third parties)
-if (!$user->admin && !$user->rights->societe->lire) {
+require_once __DIR__.'/class/facturelectrouting.class.php';
+$action = GETPOST('action', 'alpha');
+if (!FacturelectRouting::canReadDirectory($action, $user)) {
 	header('Content-Type: application/json');
 	echo json_encode(array('success' => false, 'error' => 'Permission denied'));
 	exit;
@@ -52,7 +53,6 @@ if (!getDolGlobalInt('FACTURELECT_FEATURE_SIREN', 1)) {
 	exit;
 }
 
-$action = GETPOST('action', 'alpha');
 $siren = GETPOST('siren', 'alpha');
 $socid = GETPOST('socid', 'int');
 

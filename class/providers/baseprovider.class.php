@@ -37,6 +37,9 @@ abstract class BaseFacturelectProvider implements FacturelectProvider
 	 */
 	public $error = '';
 
+	/** @var array Last conversion, deposit or directory exchange, without headers or binary bodies */
+	public $lastHttpExchange = array();
+
 	/**
 	 * Constructor
 	 *
@@ -128,6 +131,21 @@ abstract class BaseFacturelectProvider implements FacturelectProvider
 			$curl_err = curl_error($ch);
 		}
 		curl_close($ch);
+
+		// Only invoice diagnostic endpoints may be captured, never authentication responses.
+		$path = parse_url($url, PHP_URL_PATH);
+		$this->lastHttpExchange = array();
+		if (($method === 'POST' && preg_match('~/invoices(?:/convert)?$~', $path))
+			|| ($method === 'GET' && preg_match('~/french_directory/entries$~', $path))) {
+			$diagnostic_response = json_decode((string) $response, true);
+			$diagnostic_truncated = false;
+			if ($diagnostic_response === null && ($http_code < 200 || $http_code >= 300)) {
+				$diagnostic_response = substr((string) $response, 0, 20000);
+				$diagnostic_truncated = strlen((string) $response) > 20000;
+			}
+			$this->lastHttpExchange = array('method' => $method, 'path' => $path, 'status' => $http_code,
+				'response' => $diagnostic_response, 'response_truncated' => $diagnostic_truncated, 'transport_error' => $curl_err);
+		}
 
 		// Helper to log audit trail
 		$log_audit = function($err_msg = '') use ($url, $method, $http_code, $params, $response, $action) {

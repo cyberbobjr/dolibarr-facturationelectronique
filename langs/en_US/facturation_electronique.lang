@@ -121,3 +121,46 @@ FacturelectB2cNoteTitle=Private individual (B2C)
 FacturelectB2cNoteBody=This customer is a private individual: they have no SIREN and are out of scope of B2B e-invoicing (SIREN routing). This kind of transaction falls under e-reporting.
 
 
+
+# Buyer routing validation
+FacturelectRoutingOk=Active buyer address: %s.
+FacturelectRoutingUnassociated=Unassociated buyer: bare SIREN %s does not match an active address. Active addresses: %s. Associate the buyer with the address specified by the recipient.
+FacturelectRoutingInactive=Buyer address inactive or reserved for technical returns: %s. The recipient cannot receive at this address. Available active addresses: %s. Check and associate the buyer.
+FacturelectRoutingMissing=Buyer address missing from active entries: %s. Active addresses: %s. Check and associate the buyer with the address specified by the recipient.
+FacturelectRoutingEmpty=No directory registration for the buyer (%s). The recipient is not ready to receive. Ask for their active invoicing address.
+FacturelectRoutingNot_ready=No active reception address for the buyer (%s). The recipient is not ready to receive. Ask them to check their directory registration.
+FacturelectRoutingError=Directory unavailable or invalid response: buyer address %s could not be verified. Sending remains allowed; verify the address with the recipient.
+FacturelectRoutingAssociate=Check and associate this buyer
+FacturelectRoutingMode=Buyer address validation
+FacturelectRoutingModeBlock=Block undeliverable addresses (default)
+FacturelectRoutingModeWarn=Warn without blocking
+FacturelectRoutingModeOff=Disable validation
+FacturelectRoutingModeHelp=SuperPDP production only, excluding B2C. A directory error allows sending with a warning.
+FacturelectRoutingChoose=Ask the recipient which address applies to this invoice flow. Inactive addresses cannot be selected.
+FacturelectRoutingActive=Active
+FacturelectRoutingInactiveLabel=Inactive or unknown
+FacturelectRoutingTechnical=Technical return
+
+# Per-invoice buyer address
+FacturelectBuyerAddress=PEPPOL address for this invoice
+FacturelectBuyerAddressHelp=Choose the active address specified by the recipient for this flow. This choice overrides the buyer default without changing the buyer or legal SIREN. It is cleared when cloning.
+FacturelectBuyerAddressDefault=Use the buyer default (otherwise the bare SIREN)
+FacturelectBuyerAddressSource=Address selected for this invoice
+FacturelectBuyerAddressLoading=Loading active addresses…
+FacturelectBuyerAddressNone=No active address available. Ask the recipient for their invoicing address.
+FacturelectBuyerAddressInvalid=This is not an active buyer address in the directory. Reload the addresses and confirm the suffix with the recipient.
+FacturelectBuyerAddressDirectoryError=Directory unavailable: a new address cannot be offered or saved. The existing choice is retained; you can restore the buyer default.
+FacturelectBuyerAddressSaveError=The invoice address could not be saved.
+FacturelectBuyerAddressSaved=Invoice address choice saved. No invoice was transmitted.
+
+FacturelectDiagnosticCopy=Copy
+FacturelectDiagnosticCopied=Diagnostic copied to the clipboard.
+FacturelectDiagnosticCopyError=Copy failed. Select and copy the diagnostic manually.
+FacturelectBuyerAddressSandboxHelp=In sandbox, French directory addresses are not PEPPOL test destinations. Use a SuperPDP fictitious buyer: SIREN 000000001 is routed to 0225:315143296_7181. Do not select a production suffix for this test.
+
+FacturelectThirdpartyAddress=Third-party PEPPOL address
+FacturelectThirdpartyAddressDefault=No associated address (fall back to SIREN)
+FacturelectThirdpartyAddressHelp=This address is the default for invoices. An invoice-specific choice takes precedence. Choose the suffix provided by the recipient.
+FacturelectThirdpartyAddressSaved=Third-party PEPPOL address saved.
+FacturelectBuyerAddressDefaultValue=Third-party address: %s
+FacturelectBuyerAddressSandboxTitle=Sandbox test recipients

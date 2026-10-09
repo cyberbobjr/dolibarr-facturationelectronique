@@ -35,7 +35,7 @@ if (!class_exists('ActionsFacturationelectronique')) {
 }
 
 // Access control
-if (!$user->rights->facture->lire) {
+if (!empty($user->socid) || !$user->rights->facture->lire) {
 	accessforbidden();
 }
 if (!getDolGlobalInt('FACTURELECT_FEATURE_EINVOICING', 1)) {
@@ -84,11 +84,25 @@ $msg_error = '';
 $sync_statuses_triggered = false;
 $sync_statuses_count = 0;
 
+// Apply the native customer invoice list scope to reads and synchronization.
+$invoice_scope = "f.entity IN (".getEntity('invoice').")";
+if (!$user->hasRight('societe', 'client', 'voir')) {
+	$invoice_scope .= " AND EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."societe_commerciaux sc WHERE sc.fk_soc = f.fk_soc AND sc.fk_user = ".((int) $user->id).")";
+}
+
+if ($action === 'send' || $action === 'sync_status') {
+	require_once __DIR__.'/class/facturelectdiagnostic.class.php';
+	if (!FacturelectDiagnostic::canTransmit($user, GETPOST('token', 'alpha'), array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''))
+		|| ($action === 'send' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST')) {
+		accessforbidden();
+	}
+}
+
 if ($action === 'sync_status') {
 	$sync_statuses_triggered = true;
 	$sql_sync = "SELECT f.rowid, ex.facturelect_invoice_id FROM " . MAIN_DB_PREFIX . "facture as f";
 	$sql_sync .= " INNER JOIN " . MAIN_DB_PREFIX . "facture_extrafields as ex ON f.rowid = ex.fk_object";
-	$sql_sync .= " WHERE ex.facturelect_invoice_id IS NOT NULL AND ex.facturelect_invoice_id != ''";
+	$sql_sync .= " WHERE ".$invoice_scope." AND ex.facturelect_invoice_id IS NOT NULL AND ex.facturelect_invoice_id != ''";
 	$resql_sync = $db->query($sql_sync);
 	if ($resql_sync) {
 		while ($obj_sync = $db->fetch_object($resql_sync)) {
@@ -133,65 +147,48 @@ if ($action === 'send') {
 	if ($facid > 0) {
 		$invoice = new Facture($db);
 		if ($invoice->fetch($facid) > 0) {
+			restrictedArea($user, 'facture', $invoice->id, '', '', 'fk_soc', 'rowid', $invoice->statut == 0);
 			if ($invoice->statut == 0) {
 				$msg_error = "Impossible d'envoyer une facture à l'état de brouillon. Veuillez la valider au préalable.";
 			} else {
 				// Fetch lines and extrafields
 				$invoice->fetch_lines();
 
-				// 1. Compile standard en_invoice JSON
-				$en_invoice = $hook->buildEnInvoiceJson($invoice);
-				if (!$en_invoice) {
-					$msg_error = $hook->error;
+				require_once __DIR__.'/class/facturelectdiagnostic.class.php';
+				$attempt = FacturelectDiagnostic::send($invoice, $hook, $client, $langs);
+				$pdf_content = $attempt['pdf'];
+				$send_res = $attempt['response'];
+				if ($send_res === false) {
+					$msg_error = $attempt['error'];
 				} else {
-					// 2. Convert and send
-					// Generate native Dolibarr PDF if missing to preserve layout
-					$pdf_dir = $conf->facture->dir_output . '/' . dol_sanitizeFileName($invoice->ref);
-					$pdf_file = $pdf_dir . '/' . dol_sanitizeFileName($invoice->ref) . '.pdf';
-					if (!file_exists($pdf_file)) {
-						$model = !empty($invoice->model_pdf) ? $invoice->model_pdf : 'crabe';
-						$invoice->generateDocument($model, $langs);
+					$pdp_id = $send_res['id'];
+
+					// Trigger SuperPDP async processing: the backend only starts validation when the invoice is polled
+					$client->getInvoice($pdp_id);
+
+					// 1. Update Extrafields safely according to AGENTS.md Rule 9 (triggers might regenerate standard PDF here, so we do it first)
+					$invoice->array_options['options_facturelect_invoice_id'] = $pdp_id;
+					$invoice->array_options['options_facturelect_status'] = 'transmitted';
+					$invoice->updateExtraField('facturelect_invoice_id');
+					$invoice->updateExtraField('facturelect_status');
+
+					// 2. Overwrite local Dolibarr generated PDF with the certified Factur-X PDF
+					$upload_dir = $conf->facture->dir_output . '/' . dol_sanitizeFileName($invoice->ref);
+					require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+					// Ensure the directory exists
+					dol_mkdir($upload_dir);
+
+					$file_name = dol_sanitizeFileName($invoice->ref) . '_facturX.pdf';
+					$dest_path = $upload_dir . '/' . $file_name;
+					// Write the Factur-X PDF content (coexisting with the original PDF)
+					file_put_contents($dest_path, $pdf_content);
+
+					// 3. Register the file in the database index so it's tracked in the document manager
+					if (file_exists($dest_path)) {
+						addFileIntoDatabaseIndex($upload_dir, $file_name, '', 'generated', 0, $invoice);
 					}
 
-					$pdf_content = $client->convertInvoiceToFacturX($en_invoice, file_exists($pdf_file) ? $pdf_file : '');
-					if ($pdf_content === false) {
-						$msg_error = "Erreur de conversion Factur-X : " . $client->error;
-					} else {
-						// Upload/Send endpoint
-						$send_res = $client->sendFacturXInvoice($pdf_content, $invoice->ref);
-						if ($send_res === false) {
-							$msg_error = "Erreur de transmission " . $client->getProviderName() . " : " . $client->error;
-						} else {
-							$pdp_id = $send_res['id'];
-
-							// Trigger SuperPDP async processing: the backend only starts validation when the invoice is polled
-							$client->getInvoice($pdp_id);
-
-							// 1. Update Extrafields safely according to AGENTS.md Rule 9 (triggers might regenerate standard PDF here, so we do it first)
-							$invoice->array_options['options_facturelect_invoice_id'] = $pdp_id;
-							$invoice->array_options['options_facturelect_status'] = 'transmitted';
-							$invoice->updateExtraField('facturelect_invoice_id');
-							$invoice->updateExtraField('facturelect_status');
-
-							// 2. Overwrite local Dolibarr generated PDF with the certified Factur-X PDF
-							$upload_dir = $conf->facture->dir_output . '/' . dol_sanitizeFileName($invoice->ref);
-							require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
-							// Ensure the directory exists
-							dol_mkdir($upload_dir);
-
-							$file_name = dol_sanitizeFileName($invoice->ref) . '_facturX.pdf';
-							$dest_path = $upload_dir . '/' . $file_name;
-							// Write the Factur-X PDF content (coexisting with the original PDF)
-							file_put_contents($dest_path, $pdf_content);
-
-							// 3. Register the file in the database index so it's tracked in the document manager
-							if (file_exists($dest_path)) {
-								addFileIntoDatabaseIndex($upload_dir, $file_name, '', 'generated', 0, $invoice);
-							}
-
-							$msg_success = "Facture client <strong>" . $invoice->ref . "</strong> transmise avec succès ! ID Technique : " . $pdp_id;
-						}
-					}
+					$msg_success = "Facture client <strong>" . $invoice->ref . "</strong> transmise avec succès ! ID Technique : " . $pdp_id;
 				}
 			}
 		} else {
@@ -226,7 +223,7 @@ $sql_count = "SELECT COUNT(f.rowid) as nb";
 $sql_count .= " FROM " . MAIN_DB_PREFIX . "facture as f";
 $sql_count .= " INNER JOIN " . MAIN_DB_PREFIX . "societe as s ON f.fk_soc = s.rowid";
 $sql_count .= " LEFT JOIN " . MAIN_DB_PREFIX . "facture_extrafields as ex ON f.rowid = ex.fk_object";
-$sql_count .= " WHERE 1 = 1";
+$sql_count .= " WHERE ".$invoice_scope;
 
 if (!empty($search_ref)) {
 	$sql_count .= natural_search('f.ref', $search_ref);
@@ -261,7 +258,7 @@ $sql .= " ex.facturelect_invoice_id, ex.facturelect_status as pdp_status";
 $sql .= " FROM " . MAIN_DB_PREFIX . "facture as f";
 $sql .= " INNER JOIN " . MAIN_DB_PREFIX . "societe as s ON f.fk_soc = s.rowid";
 $sql .= " LEFT JOIN " . MAIN_DB_PREFIX . "facture_extrafields as ex ON f.rowid = ex.fk_object";
-$sql .= " WHERE 1 = 1";
+$sql .= " WHERE ".$invoice_scope;
 
 if (!empty($search_ref)) {
 	$sql .= natural_search('f.ref', $search_ref);
@@ -294,10 +291,15 @@ if ($resql) {
 $num = count($invoices_list);
 
 // Layout headers
-llxHeader('', $langs->trans("FacturelectOutboundListTitle"), '');
+$cssfile = dol_buildpath('/facturationelectronique/css/facturation_electronique.css', 0);
+$cssurl = dol_buildpath('/facturationelectronique/css/facturation_electronique.css', 1);
+if (file_exists($cssfile)) {
+	$cssurl .= '?v=' . filemtime($cssfile);
+}
+llxHeader('', $langs->trans("FacturelectOutboundListTitle"), '', '', '', '', array(), array($cssurl));
 
 // Output container class for custom premium touches
-print '<div class="fe-container">';
+print '<div class="fe-container fe-invoice-list fe-outbound">';
 
 // Success & Error Alerts
 if ($sync_statuses_triggered) {
@@ -319,7 +321,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="mainmenu" value="facturelect">';
 print '<input type="hidden" name="leftmenu" value="outbound">';
 
-$syncbutton = '<a href="' . $_SERVER['PHP_SELF'] . '?action=sync_status&mainmenu=facturelect&leftmenu=outbound" class="butAction fe-btn-sync"><span class="fa fa-sync-alt paddingrightonly"></span> ' . $langs->trans("FacturelectSyncStatuses", "Synchroniser les statuts") . '</a>';
+$syncbutton = '<a href="' . $_SERVER['PHP_SELF'] . '?action=sync_status&token=' . newToken() . '&mainmenu=facturelect&leftmenu=outbound" class="butAction fe-btn-sync"><span class="fa fa-sync-alt paddingrightonly"></span> ' . $langs->trans("FacturelectSyncStatuses", "Synchroniser les statuts") . '</a>';
 
 // Native List Bar
 print_barre_liste(
@@ -343,7 +345,7 @@ print_barre_liste(
 );
 
 print '<div class="div-table-responsive">';
-print '<table class="tagtable liste">'."\n";
+print '<table class="tagtable liste fe-invoice-table">'."\n";
 
 // Fields title search filters row
 print '<tr class="liste_titre_filter">';
@@ -408,7 +410,7 @@ print '</td>';
 print '</tr>'."\n";
 
 // List Headers (with Sorting links)
-print '<tr class="liste_titre">';
+print '<tr class="liste_titre fe-outbound-head">';
 if (!empty($arrayfields['f.ref']['checked'])) {
 	print_liste_field_titre($arrayfields['f.ref']['label'], $_SERVER['PHP_SELF'], 'f.ref', '', $param, '', $sortfield, $sortorder);
 }
@@ -456,34 +458,34 @@ if ($num > 0) {
 
 		// Réf Dolibarr
 		if (!empty($arrayfields['f.ref']['checked'])) {
-			print '<td>' . $facture_static->getNomUrl(1) . '</td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['f.ref']['label']) . '">' . $facture_static->getNomUrl(1) . '</td>';
 		}
 		// Client
 		if (!empty($arrayfields['s.nom']['checked'])) {
-			print '<td>' . $thirdparty_static->getNomUrl(1) . '</td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['s.nom']['label']) . '">' . $thirdparty_static->getNomUrl(1) . '</td>';
 		}
 		// SIREN
 		if (!empty($arrayfields['s.siren']['checked'])) {
-			print '<td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . (!empty($invoice->siren) ? $invoice->siren : '-') . '</code></td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['s.siren']['label']) . '"><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . (!empty($invoice->siren) ? $invoice->siren : '-') . '</code></td>';
 		}
 		// Date Facture
 		if (!empty($arrayfields['f.datef']['checked'])) {
-			print '<td align="center">' . dol_print_date($invoice->datef, 'day') . '</td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['f.datef']['label']) . '" align="center">' . dol_print_date($invoice->datef, 'day') . '</td>';
 		}
 		// Total HT
 		if (!empty($arrayfields['f.total_ht']['checked'])) {
-			print '<td align="right" style="font-weight:600;">' . price($invoice->total_ht, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['f.total_ht']['label']) . '" align="right" style="font-weight:600;">' . price($invoice->total_ht, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
 		}
 		// Total TTC
 		if (!empty($arrayfields['f.total_ttc']['checked'])) {
-			print '<td align="right" style="font-weight:700; color:#0f172a;">' . price($invoice->total_ttc, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['f.total_ttc']['label']) . '" align="right" style="font-weight:700; color:#0f172a;">' . price($invoice->total_ttc, 0, $langs, 0, -1, -1, 'EUR') . '</td>';
 		}
 		// Statut Dolibarr
 		if (!empty($arrayfields['f.fk_statut']['checked'])) {
 			$facture_static->statut = $invoice->fk_statut;
 			$facture_static->paye = $invoice->paye;
 			$facture_static->type = $invoice->type;
-			print '<td>' . $facture_static->getLibStatut(3, (float) $invoice->total_regle) . '</td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['f.fk_statut']['label']) . '">' . $facture_static->getLibStatut(3, (float) $invoice->total_regle) . '</td>';
 		}
 		// Transmission PDP Status Badge
 		if (!empty($arrayfields['ex.facturelect_status']['checked'])) {
@@ -501,41 +503,41 @@ if ($num > 0) {
 				$pdp_badge_class = 'danger';
 				$pdp_badge_label = $langs->trans("FacturelectInvoiceStatus_failed");
 			}
-			print '<td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['ex.facturelect_status']['label']) . '"><span>';
 			print '<span class="fe-status-pill ' . $pdp_badge_class . '">' . $pdp_badge_label . '</span>';
 			if (!empty($invoice->facturelect_invoice_id)) {
 				print ' <a href="#" onclick="feToggleEvents(this, ' . $invoice->rowid . ', ' . $invoice->facturelect_invoice_id . '); return false;" style="margin-left:5px; color:#64748b;" title="Afficher l\'historique des événements">';
 				print '<span class="fa fa-history fe-history-icon-' . $invoice->rowid . '"></span>';
 				print '</a>';
 			}
-			print '</td>';
+			print '</span></td>';
 		}
 		// ID PDP
 		if (!empty($arrayfields['ex.facturelect_invoice_id']['checked'])) {
-			print '<td align="center"><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . (!empty($invoice->facturelect_invoice_id) ? $invoice->facturelect_invoice_id : '-') . '</code></td>';
+			print '<td data-label="' . dol_escape_htmltag($arrayfields['ex.facturelect_invoice_id']['label']) . '" align="center"><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">' . (!empty($invoice->facturelect_invoice_id) ? $invoice->facturelect_invoice_id : '-') . '</code></td>';
 		}
 
 		// Action Send button
-		print '<td align="center">';
+		print '<td data-label="' . dol_escape_htmltag($langs->trans("Action")) . '" align="center"><span>';
 		$pdp_status = !empty($invoice->pdp_status) ? $invoice->pdp_status : 'not_sent';
-		if ($invoice->fk_statut > 0 && $pdp_status !== 'transmitted') {
+		if (($user->admin || !empty($user->rights->facture->creer)) && $invoice->fk_statut > 0 && $pdp_status !== 'transmitted') {
 			$send_url = $_SERVER['PHP_SELF'] . '?action=send&id=' . $invoice->rowid . '&mainmenu=facturelect&leftmenu=outbound';
 			if (!empty($search_ref)) $send_url .= '&search_ref=' . urlencode($search_ref);
 			if (!empty($search_client)) $send_url .= '&search_client=' . urlencode($search_client);
 			if (!empty($search_siren)) $send_url .= '&search_siren=' . urlencode($search_siren);
 			if (!empty($search_status)) $send_url .= '&search_status=' . urlencode($search_status);
 
-			print '<a href="' . $send_url . '" class="fe-btn fe-btn-primary" style="padding:4px 8px; font-size:11px; border-radius:4px;" title="' . $langs->trans("FacturelectSendInvoiceTooltip") . '">';
+			print '<button type="submit" form="fe-send-form" name="id" value="' . ((int) $invoice->rowid) . '" formaction="' . dol_escape_htmltag($send_url) . '" class="fe-btn fe-btn-primary" style="padding:4px 8px; font-size:11px; border-radius:4px;" title="' . $langs->trans("FacturelectSendInvoiceTooltip") . '">';
 			print '<span class="fa fa-paper-plane"></span> ' . $langs->trans("Send");
-			print '</a>';
+			print '</button>';
 		} else {
 			print '<span style="font-size:11px; color:#94a3b8;"><span class="fa fa-check-double"></span> ' . $langs->trans("None") . '</span>';
 		}
-		print '</td>';
+		print '</span></td>';
 
 		print '</tr>'."\n";
 		if (!empty($invoice->facturelect_invoice_id)) {
-			print '<tr id="fe-events-row-' . $invoice->rowid . '" style="display:none; background:#f8fafc;"><td colspan="11" style="padding:15px; border-left:4px solid #0284c7;" id="fe-events-content-' . $invoice->rowid . '"></td></tr>';
+			print '<tr class="fe-events-row" id="fe-events-row-' . $invoice->rowid . '" style="display:none; background:#f8fafc;"><td colspan="10" style="padding:15px; border-left:4px solid #0284c7;" id="fe-events-content-' . $invoice->rowid . '"></td></tr>';
 		}
 		print "\n";
 	}
@@ -550,6 +552,7 @@ print '</table>'."\n";
 print '</div>'."\n";
 
 print '</form>'."\n";
+print '<form id="fe-send-form" method="post" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'"><input type="hidden" name="action" value="send"><input type="hidden" name="token" value="'.newToken().'"></form>';
 print '</div>'; // End fe-container
 
 print '<script type="text/javascript">
@@ -559,7 +562,7 @@ function feToggleEvents(link, rowid, pdpId) {
 	const icon = document.querySelector(".fe-history-icon-" + rowid);
 	
 	if (row.style.display === "none") {
-		row.style.display = "table-row";
+		row.style.display = "";
 		if (content.innerHTML === "") {
 			content.innerHTML = \'<div style="padding:10px; color:#64748b;"><span class="fa fa-spinner fa-spin"></span> Chargement des événements...</div>\';
 			fetch("' . dol_buildpath('/facturationelectronique/ajax_events.php', 1) . '?id=" + pdpId)
