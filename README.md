@@ -1,9 +1,9 @@
-# Module de Facturation Électronique B2B pour Dolibarr (Version stable 1.10.1)
+# Module de Facturation Électronique B2B pour Dolibarr (Version stable 1.10.2)
 
 Ce module permet de mettre en conformité Dolibarr avec la future réglementation française de facturation électronique B2B et d'e-reporting. Il s'intègre avec les plateformes de facturation (PDP) pour transmettre les factures clients (Factur-X), récupérer les factures fournisseurs, rechercher les entreprises dans l'annuaire national (PEPPOL) et déclarer les données de paiement.
 
 > [!IMPORTANT]
-> **VERSION STABLE 1.10.1** : Le module est disponible pour une utilisation en production avec SuperPDP. Sauvegardez votre base de données avant l'installation ou la mise à jour, puis configurez les identifiants correspondant à l'environnement souhaité.
+> **VERSION STABLE 1.10.2** : Le module est disponible pour une utilisation en production avec SuperPDP. Sauvegardez votre base de données avant l'installation ou la mise à jour, puis configurez les identifiants correspondant à l'environnement souhaité.
 
 > [!IMPORTANT]
 > **Compatibilité des Plateformes** : Ce module fonctionne exclusivement avec **SuperPDP**, plateforme agréée DGFiP, dont l'intégration a été entièrement validée.

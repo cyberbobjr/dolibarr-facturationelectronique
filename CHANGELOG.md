@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.10.2] - 2026-10-09
+
+### 🐛 Fixed
+
+- Replace stacked invoice warnings with one contextual status panel and a single correction action. Keep transmission diagnostics as a secondary link and avoid presenting invoices with missing SIREN information as ready to send.
+- Present stale recipient checks neutrally, reserve warning styling for confirmed routing or submission issues, and respect lookup permissions and feature settings.
+
+### Commit history
+
+#### 🐛 Fixed
+- fix(ui): simplify invoice transmission status and correction actions (efa077b) by Benjamin Marchand
+
 ## [1.10.1] - 2026-10-09
 
 ### Release
