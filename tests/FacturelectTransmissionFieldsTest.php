@@ -3,6 +3,19 @@ use PHPUnit\Framework\TestCase;
 
 require_once dirname(__DIR__) . '/class/facturelecttransmissionfields.class.php';
 
+if (!class_exists('DolibarrTriggers')) {
+	/** Minimal native trigger base for offline tests. */
+	class DolibarrTriggers
+	{
+		const VERSIONS = array('prod' => 'test');
+		public $error = '';
+		public $name, $description, $version, $picto, $family;
+		/** @param DoliDB $db Database @return void */
+		public function __construct(DoliDB $db) {}
+	}
+}
+require_once dirname(__DIR__).'/core/triggers/interface_99_modFacturationElectronique_FacturationElectroniqueTriggers.class.php';
+
 /**
  * Unit tests for the reset of the transmission extrafields of a new customer invoice.
  *
@@ -11,6 +24,30 @@ require_once dirname(__DIR__) . '/class/facturelecttransmissionfields.class.php'
  */
 class FacturelectTransmissionFieldsTest extends TestCase
 {
+	/** @return void */
+	public function testTriggerFailsCreationWhenResetCannotBePersisted()
+	{
+		global $dolibarr_mock_globals;
+		$dolibarr_mock_globals['FACTURELECT_FEATURE_EINVOICING'] = 0;
+		$invoice = new class {
+			public $element = 'facture';
+			public $id = 45;
+			public $error = 'Database write failed';
+			public $array_options = array('options_facturelect_invoice_id' => 'source-id');
+			public $calls = array();
+			/** @param string $key Extrafield @return int Write result */
+			public function updateExtraField($key) { $this->calls[] = $key; return -1; }
+		};
+		$trigger = new InterfaceFacturationElectroniqueTriggers(new DoliDB());
+		$langs = new class extends Translate {
+			/** @param string $domain Translation domain @return void */
+			public function load($domain) {}
+		};
+		$this->assertLessThan(0, $trigger->runTrigger('BILL_CREATE', $invoice, new User(), $langs, new Conf()));
+		$this->assertStringContainsString('FacturelectResetError', $trigger->error);
+		$this->assertSame(array('facturelect_invoice_id'), $invoice->calls);
+	}
+
 	/**
 	 * Fields copied from an already transmitted invoice are reset to their defaults.
 	 */

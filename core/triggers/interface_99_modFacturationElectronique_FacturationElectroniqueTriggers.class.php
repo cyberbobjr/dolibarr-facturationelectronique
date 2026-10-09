@@ -21,7 +21,9 @@
  *  \brief      Trigger to automatically report payment events to SuperPDP
  */
 
-require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
+if (!class_exists('DolibarrTriggers')) {
+	require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
+}
 if (!class_exists('FacturelectClient')) {
 	require_once dirname(dirname(dirname(__FILE__))).'/class/facturelectclient.class.php';
 }
@@ -72,7 +74,10 @@ class InterfaceFacturationElectroniqueTriggers extends DolibarrTriggers
 			if (is_object($object) && $object->element === 'facture') {
 				foreach (FacturelectTransmissionFields::reset($object) as $key) {
 					if ($object->updateExtraField($key) < 0) {
+						$langs->load('facturation_electronique@facturationelectronique');
+						$this->error = $langs->trans('FacturelectResetError', $key, $object->error);
 						dol_syslog("FacturationElectroniqueTriggers error: Failed to reset ".$key." on new invoice ".$object->id.". ".$object->error, LOG_ERR);
+						return -1;
 					}
 				}
 			}

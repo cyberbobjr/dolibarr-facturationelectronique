@@ -182,7 +182,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 
 		if ($parameters['currentcontext'] === 'invoicecard' && $action === 'send_facturelect') {
 			require_once __DIR__.'/facturelectdiagnostic.class.php';
-			if (!FacturelectDiagnostic::canTransmit($user, GETPOST('token', 'alpha'), array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''))) {
+			if (!FacturelectDiagnostic::canTransmit($user, GETPOST('token', 'alpha'), array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''), $_SERVER['REQUEST_METHOD'] ?? '')) {
 				accessforbidden();
 			}
 			$langs->load('facturation_electronique@facturationelectronique');
@@ -202,22 +202,13 @@ class ActionsFacturationelectronique extends CommonHookActions
 				return 0;
 			}
 
-			$pdp_id = '';
 			if ($send_res === false) {
-				if (preg_match('/d[eé]j[aà] existante\s*\(id\s*(\d+)\)/ui', $client->error, $matches)) {
-					$pdp_id = $matches[1];
-					$this->writeLog($object->ref, 'INFO', 'La facture existe deja sur le PDP. Recuperation de l ID existant : ' . $pdp_id);
-				} else {
-					// LOG THE EXACT API RESPONSE ERROR FOR DEBUGGING
-					file_put_contents($log_dir . '/last_error.txt', "Upload API Error: " . $client->error);
-					$this->writeLog($object->ref, 'ERROR', 'Echec de la transmission via ' . $client->getProviderName() . ' : ' . $client->error);
-					setEventMessages($langs->trans('FacturelectSendError', $client->error), null, 'errors');
-					$action = 'view';
-					return 0;
-				}
-			} else {
-				$pdp_id = $send_res['id'];
+				$this->writeLog($object->ref, 'ERROR', 'Transmission failed: '.$attempt['error']);
+				setEventMessages($langs->trans('FacturelectSendError', $attempt['error']), null, 'errors');
+				$action = 'view';
+				return 0;
 			}
+			$pdp_id = $send_res['id'];
 
 			// 1. Update Extrafields safely according to AGENTS.md Rule 9 (triggers might regenerate standard PDF here, so we do it first)
 			$object->array_options['options_facturelect_invoice_id'] = $pdp_id;
@@ -438,13 +429,22 @@ class ActionsFacturationelectronique extends CommonHookActions
 
 			// Reuse the send verdict; the checker caches only the current request's response.
 			$warning_html = '';
-			$routing_verdict = $this->checkBuyerRouting($object, new FacturelectClient($this->db));
-			if (!in_array($routing_verdict['status'], array('ok', 'skipped'), true)) {
-				$warning_html = '<div class="fe-alert fe-alert-warning fe-invoice-config-warning">';
-				$warning_html .= dol_escape_htmltag(FacturelectRouting::message($routing_verdict, $langs));
-				$warning_html .= '<br/><a href="#" onclick="feOpenModal('.$thirdparty_id.'); return false;" class="butAction">';
-				$warning_html .= $langs->trans('FacturelectRoutingAssociate').'</a></div>';
+			if (empty($pdp_id) && empty($user->socid) && !$is_b2c
+				&& getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE') === 'production'
+				&& getDolGlobalString('FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER', 'superpdp') === 'superpdp'
+				&& getDolGlobalString('FACTURATION_ELECTRONIQUE_ROUTING_CHECK_MODE', 'block') !== 'off') {
+				$routing_verdict = FacturelectDiagnostic::cachedRoutingVerdict($this->db, $object, new FacturelectClient($this->db));
+				if ($routing_verdict === null || !in_array($routing_verdict['status'], array('ok', 'skipped'), true)) {
+					$warning_html = '<div class="fe-alert fe-alert-warning fe-invoice-config-warning">';
+					$warning_html .= dol_escape_htmltag($routing_verdict === null ? $langs->trans('FacturelectRoutingUnverified') : FacturelectRouting::message($routing_verdict, $langs));
+					$warning_html .= '<br/><a href="'.dol_buildpath('/facturationelectronique/invoice_facturelect_tab.php', 1).'?id='.((int) $object->id).'&type=customer" class="butAction">'.$langs->trans('FacturelectOpenDiagnostic').'</a>';
+					if ($feat_siren) {
+						$warning_html .= ' <a href="#" onclick="feOpenModal('.$thirdparty_id.'); return false;" class="butAction">'.$langs->trans('FacturelectRoutingAssociate').'</a>';
+					}
+					$warning_html .= '</div>';
+				}
 			}
+
 
 			// Build configuration error banners
 			$config_error_html = '';
@@ -517,9 +517,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					}
 					$banner_html .= '</ul>';
 					if (!empty($buyer_siren)) {
-						$banner_html .= '<a class="butAction fe-btn-secondary" style="margin-top: 10px; display: inline-flex; align-items: center;" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						$banner_html .= '<span class="fa fa-paper-plane paddingrightonly"></span> Renvoyer au format électronique';
-						$banner_html .= '</a>';
+						$banner_html .= FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectResendInvoice'), 'butAction fe-btn-secondary');
 					}
 					$banner_html .= '</div></div>';
 				} elseif ($pdp_status === 'queued') {
@@ -536,9 +534,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 					if (empty($buyer_siren) && !$is_b2c) {
 						$banner_html .= '<br/><span class="fa fa-warning"></span> <strong>Avertissement :</strong> Le SIREN (Identifiant Professionnel 1) de ce client n\'est pas configuré. C\'est nécessaire pour l\'envoi B2B.<br/>';
 					}
-					$banner_html .= '<a class="butAction fe-btn-primary" style="margin-top: 10px; display: inline-flex; align-items: center;" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-					$banner_html .= '<span class="fa fa-paper-plane paddingrightonly"></span> Relancer la transmission';
-					$banner_html .= '</a>';
+					$banner_html .= FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectRetryInvoice'), 'butAction fe-btn-primary');
 					$banner_html .= '</div></div>';
 				} else { // not_sent
 					$banner_html = $b2c_note_html . $config_error_html . $warning_html . '<div class="fe-alert fe-alert-info fe-invoice-status-banner" style="margin-bottom: 20px;">';
@@ -551,9 +547,7 @@ class ActionsFacturationelectronique extends CommonHookActions
 						$banner_html .= '<span class="fa fa-search paddingrightonly"></span> Rechercher et associer le tiers';
 						$banner_html .= '</a>';
 					} else {
-						$banner_html .= '<a class="butAction fe-btn-primary" style="margin-top: 10px; display: inline-flex; align-items: center;" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						$banner_html .= '<span class="fa fa-paper-plane paddingrightonly"></span> ' . $langs->trans('FacturelectTabTransmitNow');
-						$banner_html .= '</a>';
+						$banner_html .= FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectTabTransmitNow'), 'butAction fe-btn-primary');
 					}
 					$banner_html .= '</div></div>';
 				}
@@ -592,18 +586,16 @@ class ActionsFacturationelectronique extends CommonHookActions
 				$this->deferredFooterHtml .= ob_get_clean();
 			}
 
+			$this->deferredFooterHtml .= FacturelectDiagnostic::sendForm($object);
+
 			// Standard Actions Bar Button (only when validated/paid)
 			if ($object->statut == 1 || $object->statut == 2) {
 				$can_send = !$seller_siren_invalid && !$buyer_siren_invalid;
 				if ($can_send) {
 					if ($pdp_status === 'transmitted') {
-						echo '<a class="butAction fe-btn-secondary" id="fe-resend-btn" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						echo '<span class="fa fa-paper-plane paddingrightonly"></span> Renvoyer au format électronique';
-						echo '</a>';
+						echo FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectResendInvoice'), 'butAction fe-btn-secondary', 'fe-resend-btn');
 					} else {
-						echo '<a class="butAction fe-btn-primary" id="fe-send-btn" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=send_facturelect&token=' . $token . '">';
-						echo '<span class="fa fa-paper-plane paddingrightonly"></span> ' . $langs->trans('FacturelectSendInvoice');
-						echo '</a>';
+						echo FacturelectDiagnostic::sendButton($object, $langs->trans('FacturelectSendInvoice'), 'butAction fe-btn-primary', 'fe-send-btn');
 					}
 				} elseif ($seller_siren_invalid) {
 					echo '<a class="butAction" id="fe-config-btn" href="'.DOL_URL_ROOT.'/admin/company.php" target="_blank" style="border:1px solid #dc2626!important; color:#ffffff!important; background:#ef4444!important; background-image:none!important;" title="Le SIREN de votre entreprise est invalide ou manquant. Cliquer pour corriger.">';

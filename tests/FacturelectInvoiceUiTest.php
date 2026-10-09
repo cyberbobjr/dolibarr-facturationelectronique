@@ -23,6 +23,26 @@ if (!function_exists('newToken')) {
 /** Authorized invoice controls and diagnostic content, without network access. */
 class FacturelectInvoiceUiTest extends TestCase
 {
+	/** @return void */
+	public function testTransmissionButtonsUseStandalonePostFormWithoutUrlToken()
+	{
+		global $user;
+		$user = (object) array('admin' => true, 'socid' => 0);
+		$invoice = (object) array('id' => 45, 'statut' => 1);
+		$button = FacturelectDiagnostic::sendButton($invoice, 'Send', 'butAction', 'fe-send-btn');
+		$form = FacturelectDiagnostic::sendForm($invoice);
+		$doc = new DOMDocument();
+		$doc->loadHTML('<div>'.$button.'</div>'.$form);
+		$xpath = new DOMXPath($doc);
+		$this->assertSame('fe-transmit-45', $xpath->query('//button')->item(0)->getAttribute('form'));
+		$this->assertSame('post', $xpath->query('//form')->item(0)->getAttribute('method'));
+		$this->assertSame('/custom/compta/facture/card.php', $xpath->query('//form')->item(0)->getAttribute('action'));
+		$this->assertSame('ui-test-token', $xpath->query('//input[@name="token"]')->item(0)->getAttribute('value'));
+		$this->assertSame(0, $xpath->query('//a | //form/form')->length);
+		$invoice->statut = 3;
+		$this->assertSame('', FacturelectDiagnostic::sendButton($invoice, 'Send', 'butAction'));
+	}
+
 	/** @param string $template Template name @param bool $admin Administrator @param bool $editable Editable address @param bool $thirdparty Third-party control @param string $override Invoice override @return string Rendered HTML */
 	private function render($template, $admin, $editable = true, $thirdparty = false, $override = '')
 	{

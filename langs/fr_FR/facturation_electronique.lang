@@ -164,3 +164,10 @@ FacturelectThirdpartyAddressHelp=Cette adresse sera utilisée par défaut sur le
 FacturelectThirdpartyAddressSaved=Adresse PEPPOL du tiers enregistrée.
 FacturelectBuyerAddressDefaultValue=Adresse du tiers : %s
 FacturelectBuyerAddressSandboxTitle=Destinataires de test sandbox
+
+FacturelectSendInvalidStatus=Seules les factures validées ou payées peuvent être transmises.
+FacturelectResendInvoice=Renvoyer au format électronique
+FacturelectRetryInvoice=Relancer la transmission
+FacturelectRoutingUnverified=L’adresse acheteur n’a pas de vérification récente dans l’annuaire. Ouvrez le diagnostic de transmission pour la vérifier ; un contrôle en direct sera aussi effectué avant l’envoi.
+FacturelectResetError=Impossible de réinitialiser le champ de transmission %s sur la nouvelle facture : %s. La création de la facture a été annulée.
+FacturelectOpenDiagnostic=Ouvrir le diagnostic de transmission

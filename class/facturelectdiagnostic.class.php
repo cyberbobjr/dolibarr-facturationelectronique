@@ -14,12 +14,65 @@ class FacturelectDiagnostic
 	 * @param object $user Current user
 	 * @param string $token Submitted token
 	 * @param array $tokens Session tokens
+	 * @param string $method HTTP method
 	 * @return bool Authorized transmission
 	 */
-	public static function canTransmit($user, $token, $tokens)
+	public static function canTransmit($user, $token, $tokens, $method)
 	{
-		return empty($user->socid) && ($user->admin || !empty($user->rights->facture->creer))
+		return $method === 'POST' && empty($user->socid) && ($user->admin || !empty($user->rights->facture->creer))
 			&& $token !== '' && in_array($token, array_filter($tokens), true);
+	}
+
+	/** @param object $invoice Invoice @return bool Validated or paid invoice */
+	public static function canSendInvoice($invoice)
+	{
+		return in_array((int) ($invoice->statut ?? -1), array(1, 2), true);
+	}
+
+	/** @param object $invoice Invoice @param string $label Button label @param string $class CSS classes @param string $id Optional button ID @return string Button attached to an external POST form */
+	public static function sendButton($invoice, $label, $class, $id = '')
+	{
+		global $user;
+		if (!self::canSendInvoice($invoice) || !empty($user->socid) || !($user->admin || !empty($user->rights->facture->creer))) {
+			return '';
+		}
+		return '<button type="submit" form="fe-transmit-'.((int) $invoice->id).'" class="'.dol_escape_htmltag($class).'"'.($id !== '' ? ' id="'.dol_escape_htmltag($id).'"' : '').'><span class="fa fa-paper-plane paddingrightonly"></span> '.dol_escape_htmltag($label).'</button>';
+	}
+
+	/** @param object $invoice Invoice @return string Standalone POST form rendered outside native forms */
+	public static function sendForm($invoice)
+	{
+		return '<form id="fe-transmit-'.((int) $invoice->id).'" method="post" action="'.dol_buildpath('/compta/facture/card.php', 1).'"><input type="hidden" name="id" value="'.((int) $invoice->id).'"><input type="hidden" name="action" value="send_facturelect"><input type="hidden" name="token" value="'.dol_escape_htmltag(newToken()).'"></form>';
+	}
+
+	/**
+	 * Read recent matching evidence without calling the provider during page rendering.
+	 * @param object $db Database
+	 * @param object $invoice Invoice with loaded buyer
+	 * @param object $client Provider client (name only)
+	 * @return array|null Cached verdict, or no recent matching evidence
+	 */
+	public static function cachedRoutingVerdict($db, $invoice, $client)
+	{
+		$current = self::context($invoice, $client);
+		$records = array_merge(self::load($db, $invoice, 'check') ?: array(), self::load($db, $invoice, 'send') ?: array());
+		usort($records, function ($a, $b) { return strcmp($b['at'] ?? '', $a['at'] ?? ''); });
+		foreach ($records as $record) {
+			$at = strtotime($record['at'] ?? '');
+			if (!$at || $at < time() - 300 || $at > time() || ($record['provider'] ?? '') !== $current['provider']
+				|| ($record['mode'] ?? '') !== $current['mode'] || ($record['routing']['siren'] ?? '') !== $current['routing']['siren']
+				|| FacturelectRouting::normalize($record['routing']['identifier'] ?? '', $record['routing']['scheme'] ?? '') !== FacturelectRouting::normalize($current['routing']['identifier'], $current['routing']['scheme'])) {
+				continue;
+			}
+			if (!empty($record['routing_check']) && $record['routing_check']['status'] !== 'skipped') {
+				return $record['routing_check'];
+			}
+			if (isset($record['directory']['entries']) && in_array($record['directory']['status'], array('active', 'not_active', 'empty'), true)) {
+				$entries = array_map(function ($entry) { return array('identifier' => $entry['identifier'], 'is_active' => $entry['active']); }, $record['directory']['entries']);
+				return FacturelectRouting::evaluate($current['routing']['identifier'], $current['routing']['scheme'], $current['routing']['siren'], $entries);
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -104,6 +157,9 @@ class FacturelectDiagnostic
 	public static function send($invoice, $actions, $client, $langs)
 	{
 		global $conf;
+		if (!self::canSendInvoice($invoice)) {
+			return array('response' => false, 'pdf' => false, 'error' => $langs->trans('FacturelectSendInvalidStatus'));
+		}
 		$record = self::context($invoice, $client);
 		$record['steps'] = array();
 		$result = array('response' => false, 'pdf' => false, 'error' => '');
@@ -144,7 +200,13 @@ class FacturelectDiagnostic
 			}
 			$client->provider->lastHttpExchange = array();
 			$result['response'] = $client->sendFacturXInvoice($result['pdf'], $invoice->ref);
-			$record['steps'][] = array('stage' => 'deposit', 'at' => date('c'), 'ok' => $result['response'] !== false,
+			$reused = false;
+			if ($result['response'] === false && preg_match('/d[eé]j[aà] existante\s*\(id\s*(\d+)\)/ui', $client->error, $matches)) {
+				$result['response'] = array('id' => $matches[1]);
+				$reused = true;
+				$actions->writeLog($invoice->ref, 'INFO', 'Recovered existing PDP invoice ID: '.$matches[1]);
+			}
+			$record['steps'][] = array('stage' => 'deposit', 'at' => date('c'), 'ok' => $result['response'] !== false, 'reused' => $reused,
 				'error' => $result['response'] === false ? $client->error : '', 'http' => $client->provider->lastHttpExchange ?? array());
 			$result['error'] = $result['response'] === false ? $client->error : '';
 			$record['pdp_id'] = $result['response']['id'] ?? '';

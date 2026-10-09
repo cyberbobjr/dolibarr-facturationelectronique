@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Require internal invoice write permission, explicit CSRF tokens and invoice access checks before transmission; scope outgoing lists and synchronization to authorized entities and customers.
 
+- Require POST for all transmission and status synchronization actions and reject invoices outside validated/paid states. Use recent persisted evidence for invoice-card routing banners, reconcile existing PDP invoice responses in diagnostics, and roll back invoice creation when transmission-field resets cannot be saved.
+
 ## [1.10.0-beta.2] - 2026-10-09
 
 ### 🐛 Fixed

@@ -19,3 +19,5 @@
 - Publish changelog headings and release-note metadata in English. Generate unreleased notes without changing the module version.
 
 - Require internal invoice write permission, explicit CSRF tokens and invoice access checks before transmission; scope outgoing lists and synchronization to authorized entities and customers.
+
+- Require POST for all transmission and status synchronization actions and reject invoices outside validated/paid states. Use recent persisted evidence for invoice-card routing banners, reconcile existing PDP invoice responses in diagnostics, and roll back invoice creation when transmission-field resets cannot be saved.

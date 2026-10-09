@@ -75,6 +75,8 @@ class DiagnosticTestActions
 {
 	public $payload;
 	public $error = 'Invalid invoice';
+	/** @param string $ref Reference @param string $level Log level @param string $message Message @return void */
+	public function writeLog($ref, $level, $message) {}
 	public function buildEnInvoiceJson($invoice) { return $this->payload; }
 	/** @param object $invoice Invoice @param object $client Directory client @return array Verdict */
 	public function checkBuyerRouting($invoice, $client) { return (new FacturelectRouting())->check($invoice->thirdparty, $client); }
@@ -87,14 +89,62 @@ class FacturelectDiagnosticTest extends TestCase
 	public function testTransmissionRequiresInternalWritePermissionAndSessionToken()
 	{
 		$user = (object) array('admin' => false, 'socid' => 0, 'rights' => (object) array('facture' => (object) array('creer' => false)));
-		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, 'valid', array('valid')));
+		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, 'valid', array('valid'), 'POST'));
 		$user->rights->facture->creer = true;
-		$this->assertTrue(FacturelectDiagnostic::canTransmit($user, 'valid', array('old', 'valid')));
-		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, '', array('')));
-		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, 'wrong', array('valid')));
+		$this->assertTrue(FacturelectDiagnostic::canTransmit($user, 'valid', array('old', 'valid'), 'POST'));
+		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, '', array(''), 'POST'));
+		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, 'wrong', array('valid'), 'POST'));
+		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, 'valid', array('valid'), 'GET'));
 		$user->socid = 10;
 		$user->admin = true;
-		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, 'valid', array('valid')));
+		$this->assertFalse(FacturelectDiagnostic::canTransmit($user, 'valid', array('valid'), 'POST'));
+	}
+
+	/** @return void */
+	public function testInvalidInvoiceStatesNeverCallProviderOrStoreAnAttempt()
+	{
+		foreach (array(0, 3, -1) as $status) {
+			$this->invoice->statut = $status;
+			$res = FacturelectDiagnostic::send($this->invoice, $this->actions, $this->client, new Translate());
+			$this->assertFalse($res['response']);
+			$this->assertSame('FacturelectSendInvalidStatus', $res['error']);
+		}
+		$this->assertSame(array(), $this->client->calls);
+		$this->assertSame(array(), $this->db->snapshots);
+		$this->invoice->statut = 2;
+		$this->assertSame(123, FacturelectDiagnostic::send($this->invoice, $this->actions, $this->client, new Translate())['response']['id']);
+	}
+
+	/** @return void */
+	public function testDuplicateDepositIsReconciledBeforeDiagnosticPersistence()
+	{
+		$this->client->sent = false;
+		$this->client->error = 'Facture déjà existante (id 456)';
+		$res = FacturelectDiagnostic::send($this->invoice, $this->actions, $this->client, new Translate());
+		$this->assertSame('456', $res['response']['id']);
+		$this->assertSame('', $res['error']);
+		$record = $this->db->snapshots[0];
+		$this->assertSame('456', $record['pdp_id']);
+		$this->assertTrue($record['steps'][2]['ok']);
+		$this->assertTrue($record['steps'][2]['reused']);
+		$this->assertSame(400, $record['steps'][2]['http']['status']);
+		$this->assertSame(array('convert', 'deposit'), $this->client->calls);
+	}
+
+	/** @return void */
+	public function testBannerUsesOnlyFreshMatchingPersistedDirectoryEvidence()
+	{
+		$record = FacturelectDiagnostic::context($this->invoice, $this->client);
+		$record['directory'] = array('status' => 'not_active', 'entries' => array(array('identifier' => '0225:999044340_OTHER', 'active' => true)));
+		$this->assertNull(FacturelectDiagnostic::cachedRoutingVerdict($this->db, $this->invoice, $this->client));
+		FacturelectDiagnostic::store($this->db, $this->invoice, 'check', $record);
+		$this->assertSame('missing', FacturelectDiagnostic::cachedRoutingVerdict($this->db, $this->invoice, $this->client)['status']);
+		$this->invoice->array_options['options_facturelect_buyer_address'] = '0225:999044340_OTHER';
+		$this->assertNull(FacturelectDiagnostic::cachedRoutingVerdict($this->db, $this->invoice, $this->client));
+		$this->invoice->array_options = array();
+		$this->db->stored[0]->response_payload = json_encode(array_merge($record, array('at' => date('c', time() - 301))));
+		$this->assertNull(FacturelectDiagnostic::cachedRoutingVerdict($this->db, $this->invoice, $this->client));
+		$this->assertSame(array(), $this->client->calls);
 	}
 
 	private $db;
@@ -108,7 +158,7 @@ class FacturelectDiagnosticTest extends TestCase
 		global $dolibarr_mock_globals, $conf;
 		$dolibarr_mock_globals = array('FACTURATION_ELECTRONIQUE_MODE' => 'production', 'FACTURATION_ELECTRONIQUE_ACTIVE_PROVIDER' => 'superpdp', 'FACTURATION_ELECTRONIQUE_ROUTING_CHECK_MODE' => 'off');
 		$this->db = new DiagnosticTestDb();
-		$this->invoice = (object) array('id' => 28, 'ref' => 'TEST-28', 'entity' => 2, 'db' => $this->db,
+		$this->invoice = (object) array('id' => 28, 'statut' => 1, 'ref' => 'TEST-28', 'entity' => 2, 'db' => $this->db,
 			'thirdparty' => (object) array('name' => 'PRIVATE BUYER', 'idprof1' => '999044340', 'idprof2' => '99904434000012',
 				'array_options' => array('options_facturelect_id' => '999044340_SERVICE')));
 		$this->client = new DiagnosticTestClient();

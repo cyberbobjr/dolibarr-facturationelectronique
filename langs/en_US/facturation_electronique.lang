@@ -164,3 +164,10 @@ FacturelectThirdpartyAddressHelp=This address is the default for invoices. An in
 FacturelectThirdpartyAddressSaved=Third-party PEPPOL address saved.
 FacturelectBuyerAddressDefaultValue=Third-party address: %s
 FacturelectBuyerAddressSandboxTitle=Sandbox test recipients
+
+FacturelectSendInvalidStatus=Only validated or paid invoices can be transmitted.
+FacturelectResendInvoice=Resend electronically
+FacturelectRetryInvoice=Retry transmission
+FacturelectRoutingUnverified=The buyer address has no recent directory check. Open the transmission diagnostic to verify it; a live check will also run before sending.
+FacturelectResetError=Unable to clear transmission field %s on the new invoice: %s. Invoice creation has been cancelled.
+FacturelectOpenDiagnostic=Open transmission diagnostic

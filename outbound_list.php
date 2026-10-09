@@ -92,8 +92,7 @@ if (!$user->hasRight('societe', 'client', 'voir')) {
 
 if ($action === 'send' || $action === 'sync_status') {
 	require_once __DIR__.'/class/facturelectdiagnostic.class.php';
-	if (!FacturelectDiagnostic::canTransmit($user, GETPOST('token', 'alpha'), array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''))
-		|| ($action === 'send' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST')) {
+	if (!FacturelectDiagnostic::canTransmit($user, GETPOST('token', 'alpha'), array($_SESSION['token'] ?? '', $_SESSION['newtoken'] ?? ''), $_SERVER['REQUEST_METHOD'] ?? '')) {
 		accessforbidden();
 	}
 }
@@ -148,8 +147,8 @@ if ($action === 'send') {
 		$invoice = new Facture($db);
 		if ($invoice->fetch($facid) > 0) {
 			restrictedArea($user, 'facture', $invoice->id, '', '', 'fk_soc', 'rowid', $invoice->statut == 0);
-			if ($invoice->statut == 0) {
-				$msg_error = "Impossible d'envoyer une facture à l'état de brouillon. Veuillez la valider au préalable.";
+			if (!FacturelectDiagnostic::canSendInvoice($invoice)) {
+				$msg_error = $langs->trans('FacturelectSendInvalidStatus');
 			} else {
 				// Fetch lines and extrafields
 				$invoice->fetch_lines();
@@ -321,7 +320,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="mainmenu" value="facturelect">';
 print '<input type="hidden" name="leftmenu" value="outbound">';
 
-$syncbutton = '<a href="' . $_SERVER['PHP_SELF'] . '?action=sync_status&token=' . newToken() . '&mainmenu=facturelect&leftmenu=outbound" class="butAction fe-btn-sync"><span class="fa fa-sync-alt paddingrightonly"></span> ' . $langs->trans("FacturelectSyncStatuses", "Synchroniser les statuts") . '</a>';
+$syncbutton = ($user->admin || !empty($user->rights->facture->creer)) ? '<button type="submit" form="fe-sync-form" class="butAction fe-btn-sync"><span class="fa fa-sync-alt paddingrightonly"></span> '.$langs->trans('FacturelectSyncStatuses').'</button>' : '';
 
 // Native List Bar
 print_barre_liste(
@@ -520,7 +519,7 @@ if ($num > 0) {
 		// Action Send button
 		print '<td data-label="' . dol_escape_htmltag($langs->trans("Action")) . '" align="center"><span>';
 		$pdp_status = !empty($invoice->pdp_status) ? $invoice->pdp_status : 'not_sent';
-		if (($user->admin || !empty($user->rights->facture->creer)) && $invoice->fk_statut > 0 && $pdp_status !== 'transmitted') {
+		if (($user->admin || !empty($user->rights->facture->creer)) && in_array((int) $invoice->fk_statut, array(1, 2), true) && $pdp_status !== 'transmitted') {
 			$send_url = $_SERVER['PHP_SELF'] . '?action=send&id=' . $invoice->rowid . '&mainmenu=facturelect&leftmenu=outbound';
 			if (!empty($search_ref)) $send_url .= '&search_ref=' . urlencode($search_ref);
 			if (!empty($search_client)) $send_url .= '&search_client=' . urlencode($search_client);
@@ -552,6 +551,7 @@ print '</table>'."\n";
 print '</div>'."\n";
 
 print '</form>'."\n";
+print '<form id="fe-sync-form" method="post" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'"><input type="hidden" name="action" value="sync_status"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="mainmenu" value="facturelect"><input type="hidden" name="leftmenu" value="outbound"></form>';
 print '<form id="fe-send-form" method="post" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'"><input type="hidden" name="action" value="send"><input type="hidden" name="token" value="'.newToken().'"></form>';
 print '</div>'; // End fe-container
 
