@@ -191,8 +191,64 @@ class SuperPdpProvider extends BaseFacturelectProvider
 	 */
 	public function getCompanyEntries($siren)
 	{
+		global $conf;
+
 		$clean_siren = preg_replace('/\s+/', '', $siren);
-		return $this->callApi('GET', '/french_directory/entries', array('number' => $clean_siren));
+		$ttl = max(0, min(525600, getDolGlobalInt('FACTURATION_ELECTRONIQUE_PEPPOL_CACHE_MINUTES', 1440))) * 60;
+		$cache_file = '';
+		if ($ttl > 0 && defined('DOL_DATA_ROOT')) {
+			$mode = getDolGlobalString('FACTURATION_ELECTRONIQUE_MODE') === 'production' ? 'production' : 'sandbox';
+			$credential_prefix = 'FACTURATION_ELECTRONIQUE_'.($mode === 'production' ? 'PROD' : 'SANDBOX').'_CLIENT_';
+			// Credentials are hashed so account changes cannot reuse another account's directory data.
+			$key = hash('sha256', json_encode(array($conf->entity, $mode, $clean_siren,
+				getDolGlobalString($credential_prefix.'ID'), getDolGlobalString($credential_prefix.'SECRET'))));
+			$cache_file = DOL_DATA_ROOT.'/facturationelectronique/peppol-cache/'.$key.'.json';
+			$cached = is_file($cache_file) ? json_decode((string) @file_get_contents($cache_file), true) : null;
+			if (is_array($cached) && isset($cached['stored_at'], $cached['response'])
+				&& is_int($cached['stored_at']) && $this->isCacheableDirectoryResponse($cached['response'])
+				&& $cached['stored_at'] <= time() && time() - $cached['stored_at'] < $ttl) {
+				$this->error = '';
+				$this->lastHttpExchange = array();
+				return $cached['response'];
+			}
+		}
+
+		$response = $this->callApi('GET', '/french_directory/entries', array('number' => $clean_siren));
+		if ($cache_file !== '' && $this->isCacheableDirectoryResponse($response)) {
+			$cache_dir = dirname($cache_file);
+			if (dol_mkdir($cache_dir) >= 0) {
+				$temp = @tempnam($cache_dir, 'peppol-');
+				$json = json_encode(array('stored_at' => time(), 'response' => $response));
+				// Rename a complete file so concurrent readers never see partially written JSON.
+				if ($temp !== false && $json !== false && @file_put_contents($temp, $json) !== false && @rename($temp, $cache_file)) {
+					return $response;
+				}
+				if ($temp !== false) {
+					@unlink($temp);
+				}
+			}
+			dol_syslog('SuperPdpProvider::getCompanyEntries: unable to persist PEPPOL cache', LOG_WARNING);
+		}
+		return $response;
+	}
+
+	/**
+	 * Check the entry collection before retaining or replaying a directory response.
+	 *
+	 * @param mixed $response Decoded provider response
+	 * @return bool True for a list of entry arrays, including an empty list
+	 */
+	private function isCacheableDirectoryResponse($response)
+	{
+		if (!is_array($response) || !isset($response['data']) || !is_array($response['data']) || !array_is_list($response['data'])) {
+			return false;
+		}
+		foreach ($response['data'] as $entry) {
+			if (!is_array($entry)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

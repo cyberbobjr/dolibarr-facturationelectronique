@@ -112,6 +112,17 @@ if ($action === 'update_features') {
 	}
 }
 
+if ($action === 'update_peppol_cache') {
+	$cache_minutes = filter_var(GETPOST('peppol_cache_minutes', 'alphanohtml'), FILTER_VALIDATE_INT, array('options' => array('min_range' => 0, 'max_range' => 525600)));
+	if ($cache_minutes === false) {
+		setEventMessages($langs->trans('FacturelectPeppolCacheInvalid'), null, 'errors');
+	} elseif (dolibarr_set_const($db, 'FACTURATION_ELECTRONIQUE_PEPPOL_CACHE_MINUTES', $cache_minutes, 'chaine', 0, 'PEPPOL directory cache duration in minutes (0 disables)', $conf->entity) < 0) {
+		setEventMessages($langs->trans('ErrorFailedToSave'), null, 'errors');
+	} else {
+		setEventMessages($langs->trans('SetupSaved'), null, 'mesgs');
+	}
+}
+
 if ($action === 'update_notes') {
 	// BR-FR-05 legal mentions (BT-22). Empty value => module falls back to the legal default.
 	$note_penalty = GETPOST('note_penalty', 'restricthtml');
@@ -365,6 +376,18 @@ print '    </div>';
 print '    <div style="margin-top:16px;">';
 print '      <button type="submit" class="fe-btn fe-btn-primary"><span class="fa fa-save"></span> Enregistrer les fonctionnalités</button>';
 print '    </div>';
+print '  </form>';
+print '</div>';
+
+print '<div class="fe-card" style="margin-bottom:20px;">';
+print '  <h3 class="fe-card-title">'.$langs->trans('FacturelectPeppolCacheTitle').'</h3>';
+print '  <form action="'.$_SERVER['PHP_SELF'].'" method="post">';
+print '    <input type="hidden" name="token" value="'.newToken().'">';
+print '    <input type="hidden" name="action" value="update_peppol_cache">';
+print '    <label for="peppol_cache_minutes">'.$langs->trans('FacturelectPeppolCacheDuration').'</label> ';
+print '    <input type="number" id="peppol_cache_minutes" name="peppol_cache_minutes" class="fe-input" min="0" max="525600" step="1" required aria-describedby="peppol_cache_help" value="'.getDolGlobalInt('FACTURATION_ELECTRONIQUE_PEPPOL_CACHE_MINUTES', 1440).'">';
+print '    <p id="peppol_cache_help">'.$langs->trans('FacturelectPeppolCacheHelp').'</p>';
+print '    <button type="submit" class="fe-btn fe-btn-primary">'.$langs->trans('Save').'</button>';
 print '  </form>';
 print '</div>';
 
