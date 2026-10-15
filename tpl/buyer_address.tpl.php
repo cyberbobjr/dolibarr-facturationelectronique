@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr> */
+/* Copyright (C) 2026 Benjamin Marchand <contact@news-cap.com> */
 /** @var bool $fe_can_edit_buyer_address Authorization computed by the customer invoice page */
 
 $fe_address_is_thirdparty = !empty($fe_address_is_thirdparty);

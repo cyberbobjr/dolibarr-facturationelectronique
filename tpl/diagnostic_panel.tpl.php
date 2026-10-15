@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr> */
+/* Copyright (C) 2026 Benjamin Marchand <contact@news-cap.com> */
 /** @var array $fe_diagnostic_current Current routing context, authorized by the invoice page */
 if (!isset($fe_diagnostic_current, $object, $user) || !is_array($fe_diagnostic_current)) {
 	http_response_code(403);
