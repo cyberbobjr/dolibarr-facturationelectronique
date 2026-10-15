@@ -200,3 +200,7 @@ FacturelectChooseAddress=Choisir une adresse
 FacturelectCompleteCompany=Compléter mon entreprise
 FacturelectOpenThirdparty=Consulter la fiche client
 FacturelectTransmissionDetails=Détails de transmission
+FacturelectPeppolCacheTitle=Cache des adresses PEPPOL SuperPDP
+FacturelectPeppolCacheDuration=Durée du cache (minutes)
+FacturelectPeppolCacheHelp=Par défaut : 1440 minutes (24 heures). 0 désactive le cache. Maximum : 525600 minutes (un an). Les réponses valides, même sans adresse, sont conservées ; les erreurs ne le sont pas. Les recherches et contrôles de routage utilisent ces données jusqu’à expiration. Réduisez la durée pour prendre en compte plus vite les changements de l’annuaire.
+FacturelectPeppolCacheInvalid=Saisissez un nombre entier de minutes entre 0 et 525600.

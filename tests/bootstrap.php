@@ -16,6 +16,13 @@ if (!defined('MAIN_DB_PREFIX')) {
 global $dolibarr_mock_globals;
 $dolibarr_mock_globals = array();
 
+/** Native directory helper mock for isolated filesystem cache tests. */
+if (!function_exists('dol_mkdir')) {
+	function dol_mkdir($dir) {
+		return is_dir($dir) || @mkdir($dir, 0755, true) ? 0 : -1;
+	}
+}
+
 /**
  * Mock getDolGlobalString
  */

@@ -1,9 +1,9 @@
-# Module de Facturation Électronique B2B pour Dolibarr (Version stable 1.10.2)
+# Module de Facturation Électronique B2B pour Dolibarr (Version bêta 1.11.0-beta.1)
 
 Ce module permet de mettre en conformité Dolibarr avec la future réglementation française de facturation électronique B2B et d'e-reporting. Il s'intègre avec les plateformes de facturation (PDP) pour transmettre les factures clients (Factur-X), récupérer les factures fournisseurs, rechercher les entreprises dans l'annuaire national (PEPPOL) et déclarer les données de paiement.
 
 > [!IMPORTANT]
-> **VERSION STABLE 1.10.2** : Le module est disponible pour une utilisation en production avec SuperPDP. Sauvegardez votre base de données avant l'installation ou la mise à jour, puis configurez les identifiants correspondant à l'environnement souhaité.
+> **VERSION BÊTA 1.11.0-beta.1** : Cette version ajoute le cache configurable des adresses PEPPOL SuperPDP. Validez-la dans votre environnement de test avant une utilisation en production. Sauvegardez votre base de données avant l'installation ou la mise à jour.
 
 > [!IMPORTANT]
 > **Compatibilité des Plateformes** : Ce module fonctionne exclusivement avec **SuperPDP**, plateforme agréée DGFiP, dont l'intégration a été entièrement validée.
@@ -23,6 +23,7 @@ Ce module permet de mettre en conformité Dolibarr avec la future réglementatio
 1. **Recherche dans l'annuaire national (Directory)** :
    - Recherche d'entreprises par nom et code postal directement depuis l'interface de Dolibarr.
    - Association en un clic du SIREN et des identifiants de routage PEPPOL.
+   - Cache partagé des adresses SuperPDP, configurable dans la configuration du module : durée en minutes, 1440 (24 heures) par défaut, 0 pour désactiver, maximum un an. Les réponses vides sont conservées, les erreurs ne le sont pas. Les changements d’annuaire deviennent visibles à expiration ; la durée réduite s’applique aux entrées existantes. Les fichiers sont stockés sous `DOL_DATA_ROOT/facturationelectronique/peppol-cache`, séparés par entité, environnement et identifiants de connexion. Un échec de stockage conserve la réponse fournisseur sans bloquer la recherche.
    - **Double choix de synchronisation** : *Synchronisation complète* (mise à jour du nom et de l'adresse du tiers avec les coordonnées officielles de l'annuaire) ou *Synchronisation partielle* (liaison technique du SIREN et du routage sans écraser vos données locales).
 
 2. **Factures Émises (Ventes)** :

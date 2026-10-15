@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr> */
+/* Copyright (C) 2026 Benjamin Marchand <contact@news-cap.com> */
 /** Single invoice status panel; correction permissions and cached routing come from the hook. */
 
 $fe_status_style = 'info';

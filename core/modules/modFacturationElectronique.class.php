@@ -1,5 +1,5 @@
 <?php
-/* Copyright (C) 2026 Benjamin Marchand <ben.marchand@free.fr>
+/* Copyright (C) 2026 Benjamin Marchand <contact@news-cap.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ class modFacturationElectronique extends DolibarrModules
 		$this->description = "Module de facturation electronique B2B via SuperPDP (Factur-X, UBL, CII)";
 		$this->descriptionlong = "Conformite facturation B2B francaise. Liaison tiers a l'annuaire national, conversion en Factur-X et transmission securisee de factures clients, et recuperation automatique de factures d'achat.";
 
-		$this->version = '1.10.2';
+		$this->version = '1.11.0-beta.1';
 
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'fa-file-invoice-dollar';
